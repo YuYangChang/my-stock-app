@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <!-- iPhone PWA 關鍵設定 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="選股儀表板">
+  <title>選股儀表板</title>
+  
+  <!-- 引入 TradingView Lightweight Charts -->
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; margin: 0; padding: 16px; }
+    h2 { margin-top: 0; font-size: 1.2rem; text-align: center; }
+    .nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; }
+    .btn { background: #2c2c2e; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; white-space: nowrap; }
+    .btn.active { background: #0a84ff; font-weight: bold; }
+    .card { background: #1c1c1e; padding: 12px; border-radius: 12px; margin-bottom: 12px; }
+    .price-info { display: flex; justify-content: space-between; align-items: center; }
+    .price { font-size: 1.5rem; font-weight: bold; }
+    .change { font-size: 1rem; }
+    .up { color: #ff453a; } /* 台灣習慣：漲紅 */
+    .down { color: #30d158; } /* 跌綠 */
+    #chart { width: 100%; height: 320px; }
+    .ma-legend { font-size: 0.8rem; margin-top: 8px; display: flex; gap: 12px; }
+    .ma5 { color: #e5c07b; } .ma20 { color: #61afef; } .ma60 { color: #c678dd; }
+  </style>
+</head>
+<body>
+
+  <h2>📈 個股與海外指標</h2>
+
+  <!-- 自選股頁籤（可自由新增台股或美股/韓股代號） -->
+  <div class="nav">
+    <button class="btn active" onclick="switchStock('2330.TW', '台積電')">台積電</button>
+    <button class="btn" onclick="switchStock('TSM', '台積電 ADR')">台積電 ADR</button>
+    <button class="btn" onclick="switchStock('005930.KS', '三星電子')">三星電子</button>
+    <button class="btn" onclick="switchStock('000660.KS', 'SK 海力士')">SK 海力士</button>
+    <button class="btn" onclick="switchStock('NVDA', '輝達')">輝達</button>
+  </div>
+
+  <div class="card">
+    <div class="price-info">
+      <div>
+        <span id="stock-name" style="font-size: 1.1rem; font-weight: bold;">台積電</span>
+        <div id="stock-symbol" style="color: #8e8e93; font-size: 0.8rem;">2330.TW</div>
+      </div>
+      <div style="text-align: right;">
+        <div id="stock-price" class="price">--</div>
+        <div id="stock-change" class="change">--</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="chart"></div>
+    <div class="ma-legend">
+      <span class="ma5">━ 5MA</span>
+      <span class="ma20">━ 20MA</span>
+      <span class="ma60">━ 60MA</span>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ 請把這裡換成你在 Cloudflare Worker 得到的網址
+    const PROXY_URL = "https://stock-proxy.your-name.workers.dev";
+
+    let chart, candlestickSeries, ma5Series, ma20Series, ma60Series;
+
+    function initChart() {
+      const chartContainer = document.getElementById('chart');
+      chart = LightweightCharts.createChart(chartContainer, {
+        layout: { background: { type: 'solid', color: '#1c1c1e' }, textColor: '#8e8e93' },
+        grid: { vertLines: { color: '#2c2c2e' }, horzLines: { color: '#2c2c2e' } },
+        timeScale: { borderColor: '#2c2c2e' },
+      });
+
+      candlestickSeries = chart.addCandlestickSeries({
+        upColor: '#ff453a', downColor: '#30d158', borderVisible: false, wickUpColor: '#ff453a', wickDownColor: '#30d158'
+      });
+
+      ma5Series = chart.addLineSeries({ color: '#e5c07b', lineWidth: 1 });
+      ma20Series = chart.addLineSeries({ color: '#61afef', lineWidth: 1 });
+      ma60Series = chart.addLineSeries({ color: '#c678dd', lineWidth: 1 });
+    }
+
+    // 計算移動平均線 (MA)
+    function calculateMA(dayCount, data) {
+      let result = [];
+      for (let i = 0; i < data.length; i++) {
+        if (i < dayCount - 1) continue;
+        let sum = 0;
+        for (let j = 0; j < dayCount; j++) sum += data[i - j].close;
+        result.push({ time: data[i].time, value: sum / dayCount });
+      }
+      return result;
+    }
+
+    async function loadStockData(symbol) {
+      try {
+        const res = await fetch(`${PROXY_URL}?symbol=${symbol}&range=1y`);
+        const json = await res.json();
+        const result = json.chart.result[0];
+        const quotes = result.indicators.quote[0];
+        const timestamps = result.timestamp;
+
+        let klineData = [];
+        for (let i = 0; i < timestamps.length; i++) {
+          if (quotes.open[i] && quotes.high[i] && quotes.low[i] && quotes.close[i]) {
+            // 時間轉為 YYYY-MM-DD 格式
+            const dateStr = new Date(timestamps[i] * 1000).toISOString().split('T')[0];
+            klineData.push({
+              time: dateStr,
+              open: quotes.open[i],
+              high: quotes.high[i],
+              low: quotes.low[i],
+              close: quotes.close[i],
+            });
+          }
+        }
+
+        // 更新報價卡片
+        const last = klineData[klineData.length - 1];
+        const prev = klineData[klineData.length - 2];
+        const diff = (last.close - prev.close).toFixed(2);
+        const percent = ((diff / prev.close) * 100).toFixed(2);
+        const isUp = diff >= 0;
+
+        document.getElementById('stock-price').innerText = last.close.toFixed(2);
+        const changeEl = document.getElementById('stock-change');
+        changeEl.innerText = `${isUp ? '+' : ''}${diff} (${isUp ? '+' : ''}${percent}%)`;
+        changeEl.className = `change ${isUp ? 'up' : 'down'}`;
+
+        // 繪製 K 線與均線
+        candlestickSeries.setData(klineData);
+        ma5Series.setData(calculateMA(5, klineData));
+        ma20Series.setData(calculateMA(20, klineData));
+        ma60Series.setData(calculateMA(60, klineData));
+
+        chart.timeScale().fitContent();
+      } catch (err) {
+        console.error("載入失敗：", err);
+      }
+    }
+
+    function switchStock(symbol, name) {
+      document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('stock-name').innerText = name;
+      document.getElementById('stock-symbol').innerText = symbol;
+      loadStockData(symbol);
+    }
+
+    // 初始化頁面
+    window.onload = () => {
+      initChart();
+      loadStockData('2330.TW');
+    };
+  </script>
+</body>
+</html>
