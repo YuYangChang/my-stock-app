@@ -200,10 +200,11 @@
 
     async function fetchStockData(symbol) {
       try {
-        const res = await fetch(`${PROXY_URL}?symbol=${symbol}&range=6m`);
+        // ⚠️ 強制請求 range=1y 確保抓滿近一年的歷史 K 線資料
+        const res = await fetch(`${PROXY_URL}?symbol=${symbol}&range=1y`);
         const json = await res.json();
 
-        if (!json.chart || !json.chart.result) {
+        if (!json.chart || !json.chart.result || !json.chart.result[0]) {
           alert('找不到此股票資料，請檢查代號！');
           return;
         }
@@ -213,9 +214,20 @@
         const timestamps = result.timestamp;
         const meta = result.meta;
 
+        if (!timestamps || timestamps.length < 2) {
+          alert(`代號 ${symbol} 抓到的歷史 K 線資料不足，無法繪製均線！`);
+          return;
+        }
+
         let kData = [];
         for (let i = 0; i < timestamps.length; i++) {
-          if (quotes.close[i] && quotes.open[i]) {
+          // 確保 Open, High, Low, Close 都有值
+          if (
+            quotes.close[i] !== null && 
+            quotes.open[i] !== null &&
+            quotes.high[i] !== null &&
+            quotes.low[i] !== null
+          ) {
             kData.push({
               open: quotes.open[i],
               high: quotes.high[i],
@@ -231,7 +243,7 @@
         document.getElementById('dispCurrency').innerText = info.currency;
 
         const last = kData[kData.length - 1];
-        const prev = kData[kData.length - 2];
+        const prev = kData[kData.length - 2] || last;
         const diff = (last.close - prev.close).toFixed(2);
         const pct = ((diff / prev.close) * 100).toFixed(2);
         const isUp = diff >= 0;
@@ -241,7 +253,7 @@
         changeEl.innerText = `${isUp ? '+' : ''}${diff} (${isUp ? '+' : ''}${pct}%)`;
         changeEl.className = `change-num ${isUp ? 'up' : 'down'}`;
 
-        // 使用 Canvas 繪製 K 線與均線
+        // 畫出 K 線與 5MA / 20MA / 60MA
         drawCanvasChart(kData);
 
       } catch (err) {
