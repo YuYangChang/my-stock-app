@@ -2,149 +2,209 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="選股儀表板">
-  <title>選股儀表板</title>
-  
-  <!-- 引入最新版 TradingView Lightweight Charts -->
-  <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
-  
+  <meta name="apple-mobile-web-app-title" content="選股幫手">
+  <title>選股幫手</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #121212; color: #fff; margin: 0; padding: 16px; }
-    h2 { margin-top: 0; font-size: 1.2rem; text-align: center; }
+    * { box-sizing: border-box; touch-action: manipulation; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: #fff; margin: 0; padding: 16px; -webkit-tap-highlight-color: transparent; }
     
-    /* 搜尋欄位 */
-    .search-box { display: flex; gap: 8px; margin-bottom: 12px; }
-    .search-box input { flex: 1; background: #1c1c1e; border: 1px solid #2c2c2e; color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 0.95rem; outline: none; }
-    .search-box button { background: #34c759; color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-weight: bold; font-size: 0.9rem; }
-    
-    /* 頁籤列表 */
-    .nav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
-    .btn { background: #2c2c2e; color: #fff; border: none; padding: 8px 14px; border-radius: 18px; font-size: 0.85rem; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
-    .btn.active { background: #0a84ff; font-weight: bold; }
-    .btn .del-btn { font-size: 0.75rem; color: #ff453a; margin-left: 4px; padding: 2px 4px; }
+    h1 { font-size: 1.4rem; margin: 0 0 16px 0; text-align: center; color: #f2f2f7; }
 
-    /* 報價卡片 */
-    .card { background: #1c1c1e; padding: 14px; border-radius: 14px; margin-bottom: 12px; }
-    .price-info { display: flex; justify-content: space-between; align-items: flex-start; }
-    .stock-tag { display: inline-block; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: #2c2c2e; color: #0a84ff; margin-top: 4px; }
-    .price { font-size: 1.6rem; font-weight: bold; }
-    .change { font-size: 0.95rem; margin-top: 2px; }
-    .currency { font-size: 0.8rem; color: #8e8e93; margin-left: 4px; }
-    .up { color: #ff453a; } /* 台灣習慣：漲紅 */
-    .down { color: #30d158; } /* 跌綠 */
+    /* 搜尋區域：加大輸入框與按鈕 */
+    .search-card { background: #1c1c1e; padding: 14px; border-radius: 16px; margin-bottom: 16px; }
+    .search-row { display: flex; gap: 10px; }
+    .search-input { flex: 1; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff; padding: 12px 16px; border-radius: 12px; font-size: 1rem; outline: none; }
+    .search-input::placeholder { color: #8e8e93; }
+    .btn-add { background: #30d158; color: #000; border: none; padding: 12px 20px; border-radius: 12px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+
+    /* 市場分類 Tab：大按鈕 */
+    .market-tabs { display: flex; background: #1c1c1e; padding: 4px; border-radius: 12px; margin-bottom: 16px; }
+    .tab-btn { flex: 1; padding: 10px 0; text-align: center; border: none; background: transparent; color: #8e8e93; font-size: 0.95rem; font-weight: 600; border-radius: 8px; cursor: pointer; }
+    .tab-btn.active { background: #6366f1; color: #fff; }
+
+    /* 股票選單：大型流動橫條 */
+    .stock-list { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; }
+    .stock-chip { background: #1c1c1e; border: 1px solid #2c2c2e; color: #e5e5ea; padding: 10px 16px; border-radius: 20px; font-size: 0.95rem; white-space: nowrap; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .stock-chip.active { background: #0a84ff; border-color: #0a84ff; color: #fff; font-weight: bold; }
+    .chip-del { font-size: 0.9rem; color: #ff453a; opacity: 0.7; padding: 2px 4px; }
+
+    /* 主要報價卡片 */
+    .main-card { background: #1c1c1e; padding: 18px; border-radius: 16px; margin-bottom: 16px; }
+    .price-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .stock-title { font-size: 1.4rem; font-weight: bold; color: #fff; }
+    .stock-sub { font-size: 0.85rem; color: #8e8e93; margin-top: 4px; }
+    .price-box { text-align: right; }
+    .price-num { font-size: 1.8rem; font-weight: 800; }
+    .currency-tag { font-size: 0.85rem; color: #8e8e93; margin-left: 4px; }
+    .change-num { font-size: 1.05rem; font-weight: 600; margin-top: 4px; }
+    .up { color: #ff453a; }
+    .down { color: #30d158; }
+
+    /* 圖表區域 */
+    .chart-card { background: #1c1c1e; padding: 16px; border-radius: 16px; }
+    .chart-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.85rem; }
+    .legend { display: flex; gap: 12px; }
+    .leg-ma5 { color: #e5c07b; } .leg-ma20 { color: #61afef; } .leg-ma60 { color: #c678dd; }
     
-    /* K線圖容器 */
-    #chart { width: 100%; height: 320px; }
-    .ma-legend { font-size: 0.75rem; margin-top: 10px; display: flex; justify-content: space-around; border-top: 1px solid #2c2c2e; padding-top: 8px; }
-    .ma5 { color: #e5c07b; } .ma20 { color: #61afef; } .ma60 { color: #c678dd; }
+    canvas { width: 100% !important; height: 260px !important; display: block; }
   </style>
 </head>
 <body>
 
-  <h2>📈 自選股與指標對比</h2>
+  <h1>📈 台美股波段儀表板</h1>
 
-  <!-- 搜尋與新增股票 -->
-  <div class="search-box">
-    <input type="text" id="symbol-input" placeholder="輸入代號 (如: 2454.TW, AMD, 000660.KS)" />
-    <button onclick="addStockFromInput()">新增</button>
+  <!-- 分類選單 -->
+  <div class="market-tabs">
+    <button class="tab-btn active" onclick="switchMarket('ALL')">全部</button>
+    <button class="tab-btn" onclick="switchMarket('TWD')">台股</button>
+    <button class="tab-btn" onclick="switchMarket('USD')">美股/ADR</button>
+    <button class="tab-btn" onclick="switchMarket('OTHER')">日韓股</button>
   </div>
 
-  <!-- 自選股頁籤區 -->
-  <div class="nav" id="stock-nav"></div>
+  <!-- 搜尋與新增 -->
+  <div class="search-card">
+    <div class="search-row">
+      <input type="text" id="searchInput" class="search-input" placeholder="輸入名稱或代號 (如: 台積電, 聯發科, NVDA)" />
+      <button onclick="addStock()" class="btn-add">新增</button>
+    </div>
+  </div>
 
-  <!-- 當前股票資訊 -->
-  <div class="card">
-    <div class="price-info">
+  <!-- 股票選單標籤 -->
+  <div class="stock-list" id="stockList"></div>
+
+  <!-- 價格卡片 -->
+  <div class="main-card">
+    <div class="price-header">
       <div>
-        <div id="stock-name" style="font-size: 1.2rem; font-weight: bold;">--</div>
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <span id="stock-symbol" style="color: #8e8e93; font-size: 0.85rem;">--</span>
-          <span id="stock-market-tag" class="stock-tag">--</span>
-        </div>
+        <div id="dispName" class="stock-title">載入中...</div>
+        <div id="dispSymbol" class="stock-sub">--</div>
       </div>
-      <div style="text-align: right;">
-        <div><span id="stock-price" class="price">--</span><span id="stock-currency" class="currency"></span></div>
-        <div id="stock-change" class="change">--</div>
+      <div class="price-box">
+        <div><span id="dispPrice" class="price-num">--</span><span id="dispCurrency" class="currency-tag"></span></div>
+        <div id="dispChange" class="change-num">--</div>
       </div>
     </div>
   </div>
 
-  <!-- TradingView K線圖與均線 -->
-  <div class="card">
-    <div id="chart"></div>
-    <div class="ma-legend">
-      <span class="ma5">━ 5MA</span>
-      <span class="ma20">━ 20MA</span>
-      <span class="ma60">━ 60MA</span>
+  <!-- K線與均線圖表 (原生 Canvas) -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <span style="color:#8e8e93">日線技術分析</span>
+      <div class="legend">
+        <span class="leg-ma5">━ 5MA</span>
+        <span class="leg-ma20">━ 20MA</span>
+        <span class="leg-ma60">━ 60MA</span>
+      </div>
     </div>
+    <canvas id="klineCanvas"></canvas>
   </div>
 
   <script>
-    // ⚠️ 替換成你的 Cloudflare Worker 網址
+    // ⚠️ 請填寫你自己的 Cloudflare Worker 網址
     const PROXY_URL = "https://stock-proxy.jeff8246532.workers.dev/";
 
-    // 預設自選股清單 (若手機無紀錄時使用)
+    // 常用股票名稱/代號映射庫（支援輸入中文搜尋）
+    const STOCK_DICT = {
+      "台積電": "2330.TW", "聯發科": "2454.TW", "鴻海": "2317.TW", "廣達": "2382.TW", "緯創": "3231.TW",
+      "台積電ADR": "TSM", "輝達": "NVDA", "美光": "MU", "超微": "AMD", "蘋果": "AAPL",
+      "三星": "005930.KS", "三星電子": "005930.KS", "海力士": "000660.KS", "SK海力士": "000660.KS",
+      "東京威力": "8035.T", "愛德萬": "6857.T"
+    };
+
+    // 預設股票
     const DEFAULT_STOCKS = [
-      { symbol: '2330.TW', name: '台積電' },
-      { symbol: 'TSM', name: '台積電 ADR' },
-      { symbol: '005930.KS', name: '三星電子' },
-      { symbol: '000660.KS', name: 'SK 海力士' },
-      { symbol: 'NVDA', name: '輝達' }
+      { symbol: '2330.TW', name: '台積電', type: 'TWD' },
+      { symbol: 'TSM', name: '台積電 ADR', type: 'USD' },
+      { symbol: 'NVDA', name: '輝達', type: 'USD' },
+      { symbol: '000660.KS', name: 'SK 海力士', type: 'OTHER' },
+      { symbol: '005930.KS', name: '三星電子', type: 'OTHER' }
     ];
 
-    let myStocks = JSON.parse(localStorage.getItem('my_stocks')) || DEFAULT_STOCKS;
+    let myStocks = JSON.parse(localStorage.getItem('my_stocks_v2')) || DEFAULT_STOCKS;
     let currentSymbol = myStocks[0].symbol;
+    let currentMarketFilter = 'ALL';
 
-    let chart, candlestickSeries, ma5Series, ma20Series, ma60Series;
-
-    // 判斷股票種類與幣值
-    function getMarketInfo(symbol) {
-      if (symbol.endsWith('.TW')) return { market: '台股', currency: 'NT$' };
-      if (symbol.endsWith('.TWO')) return { market: '台股上櫃', currency: 'NT$' };
-      if (symbol.endsWith('.KS')) return { market: '韓股', currency: '₩' };
-      if (symbol.endsWith('.T')) return { market: '日股', currency: '¥' };
-      return { market: '美股/ADR', currency: 'US$' };
+    function getStockType(symbol) {
+      if (symbol.endsWith('.TW') || symbol.endsWith('.TWO')) return { type: 'TWD', currency: 'TWD' };
+      if (symbol.endsWith('.KS')) return { type: 'OTHER', currency: 'KRW' };
+      if (symbol.endsWith('.T')) return { type: 'OTHER', currency: 'JPY' };
+      return { type: 'USD', currency: 'USD' };
     }
 
-    function initChart() {
-      const container = document.getElementById('chart');
-      chart = LightweightCharts.createChart(container, {
-        layout: { background: { type: 'solid', color: '#1c1c1e' }, textColor: '#8e8e93' },
-        grid: { vertLines: { color: '#2c2c2e' }, horzLines: { color: '#2c2c2e' } },
-        timeScale: { borderColor: '#2c2c2e' },
-      });
-
-      // 修正相容最新版 Lightweight Charts v4 API
-      candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
-        upColor: '#ff453a', downColor: '#30d158', borderVisible: false, wickUpColor: '#ff453a', wickDownColor: '#30d158'
-      });
-
-      ma5Series = chart.addSeries(LightweightCharts.LineSeries, { color: '#e5c07b', lineWidth: 1, priceLineVisible: false });
-      ma20Series = chart.addSeries(LightweightCharts.LineSeries, { color: '#61afef', lineWidth: 1, priceLineVisible: false });
-      ma60Series = chart.addSeries(LightweightCharts.LineSeries, { color: '#c678dd', lineWidth: 1, priceLineVisible: false });
+    function switchMarket(market) {
+      currentMarketFilter = market;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      renderStockList();
     }
 
-    function calculateMA(dayCount, data) {
-      let result = [];
-      for (let i = 0; i < data.length; i++) {
-        if (i < dayCount - 1) continue;
-        let sum = 0;
-        for (let j = 0; j < dayCount; j++) sum += data[i - j].close;
-        result.push({ time: data[i].time, value: sum / dayCount });
+    function renderStockList() {
+      const listContainer = document.getElementById('stockList');
+      listContainer.innerHTML = '';
+
+      const filtered = myStocks.filter(s => currentMarketFilter === 'ALL' || s.type === currentMarketFilter);
+
+      filtered.forEach(s => {
+        const chip = document.createElement('div');
+        chip.className = `stock-chip ${s.symbol === currentSymbol ? 'active' : ''}`;
+        chip.innerHTML = `
+          <span onclick="selectStock('${s.symbol}')">${s.name}</span>
+          <span class="chip-del" onclick="deleteStock(event, '${s.symbol}')">✕</span>
+        `;
+        listContainer.appendChild(chip);
+      });
+    }
+
+    function selectStock(symbol) {
+      currentSymbol = symbol;
+      renderStockList();
+      fetchStockData(symbol);
+    }
+
+    function addStock() {
+      const input = document.getElementById('searchInput');
+      let query = input.value.trim();
+      if (!query) return;
+
+      let symbol = STOCK_DICT[query] || query.toUpperCase();
+      
+      // 如果數字沒加字尾，預設為台股 .TW
+      if (/^\d{4}$/.test(symbol)) {
+        symbol += ".TW";
       }
-      return result;
+
+      if (myStocks.some(s => s.symbol === symbol)) {
+        alert('該股票已在清單中');
+        return;
+      }
+
+      const info = getStockType(symbol);
+      myStocks.push({ symbol: symbol, name: query.toUpperCase(), type: info.type });
+      localStorage.setItem('my_stocks_v2', JSON.stringify(myStocks));
+      input.value = '';
+      selectStock(symbol);
     }
 
-    async function loadStockData(symbol) {
+    function deleteStock(e, symbol) {
+      e.stopPropagation();
+      if (myStocks.length <= 1) return alert('請至少保留一檔股票');
+      myStocks = myStocks.filter(s => s.symbol !== symbol);
+      localStorage.setItem('my_stocks_v2', JSON.stringify(myStocks));
+      if (currentSymbol === symbol) currentSymbol = myStocks[0].symbol;
+      renderStockList();
+      fetchStockData(currentSymbol);
+    }
+
+    async function fetchStockData(symbol) {
       try {
-        const res = await fetch(`${PROXY_URL}?symbol=${symbol}&range=1y`);
+        const res = await fetch(`${PROXY_URL}?symbol=${symbol}&range=6m`);
         const json = await res.json();
-        
+
         if (!json.chart || !json.chart.result) {
-          alert('查無此代號資料，請再次確認！（台股請加上 .TW 或 .TWO）');
+          alert('找不到此股票資料，請檢查代號！');
           return;
         }
 
@@ -153,110 +213,139 @@
         const timestamps = result.timestamp;
         const meta = result.meta;
 
-        let klineData = [];
+        let kData = [];
         for (let i = 0; i < timestamps.length; i++) {
-          if (quotes.open[i] && quotes.high[i] && quotes.low[i] && quotes.close[i]) {
-            const dateStr = new Date(timestamps[i] * 1000).toISOString().split('T')[0];
-            klineData.push({
-              time: dateStr,
+          if (quotes.close[i] && quotes.open[i]) {
+            kData.push({
               open: quotes.open[i],
               high: quotes.high[i],
               low: quotes.low[i],
-              close: quotes.close[i],
+              close: quotes.close[i]
             });
           }
         }
 
-        // 市場資訊與幣值更新
-        const info = getMarketInfo(symbol);
-        document.getElementById('stock-name').innerText = meta.shortName || symbol;
-        document.getElementById('stock-symbol').innerText = symbol;
-        document.getElementById('stock-market-tag').innerText = info.market;
-        document.getElementById('stock-currency').innerText = info.currency;
+        const info = getStockType(symbol);
+        document.getElementById('dispName').innerText = meta.shortName || symbol;
+        document.getElementById('dispSymbol').innerText = symbol;
+        document.getElementById('dispCurrency').innerText = info.currency;
 
-        // 價格變動更新
-        const last = klineData[klineData.length - 1];
-        const prev = klineData[klineData.length - 2];
+        const last = kData[kData.length - 1];
+        const prev = kData[kData.length - 2];
         const diff = (last.close - prev.close).toFixed(2);
-        const percent = ((diff / prev.close) * 100).toFixed(2);
+        const pct = ((diff / prev.close) * 100).toFixed(2);
         const isUp = diff >= 0;
 
-        document.getElementById('stock-price').innerText = last.close.toFixed(2);
-        const changeEl = document.getElementById('stock-change');
-        changeEl.innerText = `${isUp ? '+' : ''}${diff} (${isUp ? '+' : ''}${percent}%)`;
-        changeEl.className = `change ${isUp ? 'up' : 'down'}`;
+        document.getElementById('dispPrice').innerText = last.close.toFixed(2);
+        const changeEl = document.getElementById('dispChange');
+        changeEl.innerText = `${isUp ? '+' : ''}${diff} (${isUp ? '+' : ''}${pct}%)`;
+        changeEl.className = `change-num ${isUp ? 'up' : 'down'}`;
 
-        // 渲染圖表與均線
-        candlestickSeries.setData(klineData);
-        ma5Series.setData(calculateMA(5, klineData));
-        ma20Series.setData(calculateMA(20, klineData));
-        ma60Series.setData(calculateMA(60, klineData));
+        // 使用 Canvas 繪製 K 線與均線
+        drawCanvasChart(kData);
 
-        chart.timeScale().fitContent();
       } catch (err) {
-        console.error("載入失敗：", err);
+        console.error("抓取失敗:", err);
       }
     }
 
-    // 渲染上方頁籤
-    function renderNav() {
-      const navContainer = document.getElementById('stock-nav');
-      navContainer.innerHTML = '';
+    // Canvas K線與均線繪製器
+    function drawCanvasChart(data) {
+      const canvas = document.getElementById('klineCanvas');
+      const ctx = canvas.getContext('2d');
       
-      myStocks.forEach(item => {
-        const btn = document.createElement('button');
-        btn.className = `btn ${item.symbol === currentSymbol ? 'active' : ''}`;
-        btn.innerHTML = `
-          <span onclick="switchStock('${item.symbol}')">${item.name || item.symbol}</span>
-          <span class="del-btn" onclick="deleteStock(event, '${item.symbol}')">✕</span>
-        `;
-        navContainer.appendChild(btn);
+      // 解決 Retina 螢幕高畫質渲染問題
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const width = rect.width;
+      const height = rect.height;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // 只取最近 60 天畫圖
+      const chartData = data.slice(-60);
+      
+      // 計算 MA
+      const getMA = (days) => {
+        return chartData.map((_, idx) => {
+          if (idx < days - 1) return null;
+          let sum = 0;
+          for (let i = 0; i < days; i++) sum += chartData[idx - i].close;
+          return sum / days;
+        });
+      };
+
+      const ma5 = getMA(5);
+      const ma20 = getMA(20);
+      const ma60 = getMA(60);
+
+      // 計算極值
+      let min = Math.min(...chartData.map(d => d.low));
+      let max = Math.max(...chartData.map(d => d.high));
+      const padding = (max - min) * 0.1;
+      min -= padding;
+      max += padding;
+
+      const getY = (val) => height - ((val - min) / (max - min)) * height;
+      const candleWidth = (width / chartData.length) * 0.6;
+      const step = width / chartData.length;
+
+      // 1. 畫 K 線
+      chartData.forEach((d, i) => {
+        const x = i * step + step / 2;
+        const isUp = d.close >= d.open;
+        const color = isUp ? '#ff453a' : '#30d158';
+
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 1.5;
+
+        // 上下影線
+        ctx.beginPath();
+        ctx.moveTo(x, getY(d.high));
+        ctx.lineTo(x, getY(d.low));
+        ctx.stroke();
+
+        // 實體
+        const yOpen = getY(d.open);
+        const yClose = getY(d.close);
+        ctx.fillRect(x - candleWidth / 2, Math.min(yOpen, yClose), candleWidth, Math.max(Math.abs(yClose - yOpen), 2));
       });
-    }
 
-    function switchStock(symbol) {
-      currentSymbol = symbol;
-      renderNav();
-      loadStockData(symbol);
-    }
+      // 2. 畫 MA 均線
+      const drawLine = (maArray, color) => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let started = false;
 
-    // 新增股票邏輯
-    function addStockFromInput() {
-      const input = document.getElementById('symbol-input');
-      let symbol = input.value.trim().toUpperCase();
-      if (!symbol) return;
+        maArray.forEach((val, i) => {
+          if (val !== null) {
+            const x = i * step + step / 2;
+            const y = getY(val);
+            if (!started) {
+              ctx.moveTo(x, y);
+              started = true;
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+        });
+        ctx.stroke();
+      };
 
-      if (myStocks.some(s => s.symbol === symbol)) {
-        alert('該股票已在清單中');
-        return;
-      }
-
-      myStocks.push({ symbol: symbol, name: symbol });
-      localStorage.setItem('my_stocks', JSON.stringify(myStocks));
-      input.value = '';
-      switchStock(symbol);
-    }
-
-    // 刪除股票邏輯
-    function deleteStock(e, symbol) {
-      e.stopPropagation();
-      if (myStocks.length <= 1) {
-        alert('至少保留一隻股票');
-        return;
-      }
-      myStocks = myStocks.filter(s => s.symbol !== symbol);
-      localStorage.setItem('my_stocks', JSON.stringify(myStocks));
-      if (currentSymbol === symbol) {
-        currentSymbol = myStocks[0].symbol;
-      }
-      renderNav();
-      loadStockData(currentSymbol);
+      drawLine(ma5, '#e5c07b');
+      drawLine(ma20, '#61afef');
+      drawLine(ma60, '#c678dd');
     }
 
     window.onload = () => {
-      initChart();
-      renderNav();
-      loadStockData(currentSymbol);
+      renderStockList();
+      fetchStockData(currentSymbol);
     };
   </script>
 </body>
