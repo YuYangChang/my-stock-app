@@ -5,245 +5,375 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="選股幫手">
-  <title>選股幫手</title>
+  <meta name="apple-mobile-web-app-title" content="極速下單看盤">
+  <title>極速看盤下單 App</title>
   <style>
-    * { box-sizing: border-box; touch-action: manipulation; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: #fff; margin: 0; padding: 16px; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; background: #0b0e14; color: #eaecef; margin: 0; padding: 0; overflow-x: hidden; padding-bottom: 70px; }
+
+    /* 頂部交易員 Header */
+    .app-header { background: #131722; padding: 12px 16px; border-bottom: 1px solid #2a2e39; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+    .app-logo { font-size: 1.1rem; font-weight: 800; color: #2962ff; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+    .badge-live { background: rgba(38, 166, 154, 0.2); color: #26a69a; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+
+    /* 下單 App 風格搜尋列 & 下拉選單 */
+    .search-container { position: relative; padding: 10px 16px; background: #131722; }
+    .search-input-wrap { position: relative; }
+    .search-input { width: 100%; background: #1e222d; border: 1px solid #2a2e39; color: #fff; padding: 12px 16px; border-radius: 8px; font-size: 0.95rem; outline: none; }
+    .search-input:focus { border-color: #2962ff; }
+    .search-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #1e222d; border: 1px solid #2a2e39; border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 999; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .dropdown-item { padding: 12px 16px; display: flex; justify-content: space-between; border-bottom: 1px solid #2a2e39; cursor: pointer; }
+    .dropdown-item:active { background: #2962ff; }
+    .dropdown-name { font-weight: bold; font-size: 0.95rem; }
+    .dropdown-symbol { color: #787b86; font-size: 0.85rem; }
+
+    /* 自選股橫向滑動列 */
+    .watchlist-bar { display: flex; gap: 8px; overflow-x: auto; padding: 10px 16px; background: #0b0e14; border-bottom: 1px solid #1e222d; }
+    .watch-tag { background: #1e222d; color: #b2b5be; padding: 6px 12px; border-radius: 16px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    .watch-tag.active { background: #2962ff; color: #fff; }
+    .watch-del { color: #f23645; font-size: 0.75rem; padding: 0 2px; }
+
+    /* 滑動個股主區域 */
+    .swipe-container { transition: transform 0.2s ease-out; }
     
-    h1 { font-size: 1.4rem; margin: 0 0 16px 0; text-align: center; color: #f2f2f7; }
+    /* 股票五檔行情大數據 Header */
+    .stock-detail-header { background: #131722; padding: 16px; border-bottom: 1px solid #1e222d; }
+    .stock-top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+    .stock-title-main { font-size: 1.5rem; font-weight: 800; color: #fff; }
+    .stock-subtitle { font-size: 0.85rem; color: #787b86; margin-top: 2px; }
+    .big-price { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .big-change { font-size: 1.1rem; font-weight: 700; margin-top: 4px; text-align: right; }
+    .up { color: #ef5350; } /* 台灣慣用紅漲 */
+    .down { color: #26a69a; } /* 綠跌 */
 
-    /* 搜尋區域：加大輸入框與按鈕 */
-    .search-card { background: #1c1c1e; padding: 14px; border-radius: 16px; margin-bottom: 16px; }
-    .search-row { display: flex; gap: 10px; }
-    .search-input { flex: 1; background: #2c2c2e; border: 1px solid #3a3a3c; color: #fff; padding: 12px 16px; border-radius: 12px; font-size: 1rem; outline: none; }
-    .search-input::placeholder { color: #8e8e93; }
-    .btn-add { background: #30d158; color: #000; border: none; padding: 12px 20px; border-radius: 12px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+    /* 券商盤後數據網格 */
+    .grid-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #2a2e39; }
+    .metric-box { text-align: center; }
+    .metric-label { font-size: 0.75rem; color: #787b86; }
+    .metric-val { font-size: 0.9rem; font-weight: 700; margin-top: 2px; color: #d1d4dc; }
 
-    /* 市場分類 Tab：大按鈕 */
-    .market-tabs { display: flex; background: #1c1c1e; padding: 4px; border-radius: 12px; margin-bottom: 16px; }
-    .tab-btn { flex: 1; padding: 10px 0; text-align: center; border: none; background: transparent; color: #8e8e93; font-size: 0.95rem; font-weight: 600; border-radius: 8px; cursor: pointer; }
-    .tab-btn.active { background: #6366f1; color: #fff; }
+    /* 固定視窗專業 K 線圖區塊 */
+    .chart-wrapper { background: #131722; margin: 12px 0; border-top: 1px solid #1e222d; border-bottom: 1px solid #1e222d; padding: 12px 16px; }
+    .chart-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .tf-btn-group { display: flex; background: #1e222d; border-radius: 6px; padding: 2px; }
+    .tf-btn { background: transparent; border: none; color: #787b86; padding: 4px 10px; font-size: 0.8rem; font-weight: 600; border-radius: 4px; }
+    .tf-btn.active { background: #2962ff; color: #fff; }
+    .zoom-btn-group { display: flex; gap: 6px; }
+    .zoom-btn { background: #1e222d; border: 1px solid #2a2e39; color: #d1d4dc; padding: 4px 10px; font-size: 0.8rem; border-radius: 4px; font-weight: bold; }
 
-    /* 股票選單：大型流動橫條 */
-    .stock-list { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; }
-    .stock-chip { background: #1c1c1e; border: 1px solid #2c2c2e; color: #e5e5ea; padding: 10px 16px; border-radius: 20px; font-size: 0.95rem; white-space: nowrap; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .stock-chip.active { background: #0a84ff; border-color: #0a84ff; color: #fff; font-weight: bold; }
-    .chip-del { font-size: 0.9rem; color: #ff453a; opacity: 0.7; padding: 2px 4px; }
+    /* 十字查價浮動資訊欄 */
+    .crosshair-info { font-size: 0.75rem; color: #2962ff; background: rgba(41, 98, 255, 0.1); padding: 4px 8px; border-radius: 4px; margin-bottom: 6px; height: 18px; display: flex; gap: 8px; overflow-x: auto; }
 
-    /* 主要報價卡片 */
-    .main-card { background: #1c1c1e; padding: 18px; border-radius: 16px; margin-bottom: 16px; }
-    .price-header { display: flex; justify-content: space-between; align-items: flex-start; }
-    .stock-title { font-size: 1.4rem; font-weight: bold; color: #fff; }
-    .stock-sub { font-size: 0.85rem; color: #8e8e93; margin-top: 4px; }
-    .price-box { text-align: right; }
-    .price-num { font-size: 1.8rem; font-weight: 800; }
-    .currency-tag { font-size: 0.85rem; color: #8e8e93; margin-left: 4px; }
-    .change-num { font-size: 1.05rem; font-weight: 600; margin-top: 4px; }
-    .up { color: #ff453a; }
-    .down { color: #30d158; }
+    canvas { width: 100% !important; height: 300px !important; display: block; background: #131722; cursor: crosshair; }
 
-    /* 圖表區域 */
-    .chart-card { background: #1c1c1e; padding: 16px; border-radius: 16px; }
-    .chart-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.85rem; }
-    .legend { display: flex; gap: 12px; }
-    .leg-ma5 { color: #e5c07b; } .leg-ma20 { color: #61afef; } .leg-ma60 { color: #c678dd; }
+    /* 波段漲跌預測模型卡片 */
+    .predict-card { background: #131722; margin: 12px 16px; border-radius: 12px; padding: 16px; border: 1px solid #2a2e39; }
+    .predict-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2e39; padding-bottom: 10px; }
+    .predict-title { font-size: 1rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 6px; }
+    .score-badge { font-size: 1.4rem; font-weight: 900; color: #ef5350; }
     
-    canvas { width: 100% !important; height: 260px !important; display: block; }
+    .meter-bg { background: #1e222d; height: 10px; border-radius: 5px; margin: 12px 0; overflow: hidden; }
+    .meter-fill { height: 100%; background: linear-gradient(90deg, #26a69a 0%, #ffeb3b 50%, #ef5350 100%); width: 50%; transition: width 0.6s ease; }
+
+    .predict-reasons { font-size: 0.85rem; color: #b2b5be; line-height: 1.6; padding-left: 18px; margin: 8px 0 0 0; }
+    .predict-reasons li { margin-bottom: 4px; }
+
+    /* 模擬下單按鈕區 (營造券商 App 質感) */
+    .trade-actions { display: flex; gap: 10px; padding: 0 16px; margin-top: 16px; }
+    .btn-buy { flex: 1; background: #ef5350; color: #fff; border: none; padding: 14px; border-radius: 8px; font-weight: 800; font-size: 1.05rem; text-align: center; box-shadow: 0 4px 12px rgba(239, 83, 80, 0.3); }
+    .btn-sell { flex: 1; background: #26a69a; color: #fff; border: none; padding: 14px; border-radius: 8px; font-weight: 800; font-size: 1.05rem; text-align: center; box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3); }
+
+    /* 底部導覽列 */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #131722; border-top: 1px solid #2a2e39; display: flex; justify-content: space-around; padding: 8px 0; z-index: 1000; }
+    .nav-item { text-align: center; color: #787b86; font-size: 0.7rem; text-decoration: none; }
+    .nav-item.active { color: #2962ff; font-weight: bold; }
+    .nav-icon { font-size: 1.2rem; display: block; margin-bottom: 2px; }
   </style>
 </head>
 <body>
 
-  <h1>📈 台美股波段儀表板</h1>
-
-  <!-- 分類選單 -->
-  <div class="market-tabs">
-    <button class="tab-btn active" onclick="switchMarket('ALL')">全部</button>
-    <button class="tab-btn" onclick="switchMarket('TWD')">台股</button>
-    <button class="tab-btn" onclick="switchMarket('USD')">美股/ADR</button>
-    <button class="tab-btn" onclick="switchMarket('OTHER')">日韓股</button>
+  <!-- App Header -->
+  <div class="app-header">
+    <div class="app-logo">⚡ PRO-TRADE <span class="badge-live">台股波段版</span></div>
+    <div style="font-size: 0.8rem; color: #787b86;">◄ 滑動切換個股 ►</div>
   </div>
 
-  <!-- 搜尋與新增 -->
-  <div class="search-card">
-    <div class="search-row">
-      <input type="text" id="searchInput" class="search-input" placeholder="輸入名稱或代號 (如: 台積電, 聯發科, NVDA)" />
-      <button onclick="addStock()" class="btn-add">新增</button>
+  <!-- 關鍵字智慧搜尋列 -->
+  <div class="search-container">
+    <div class="search-input-wrap">
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 搜尋股票關鍵字 (如: 台積電, 2330, 聯發科, TSM, NVDA)" oninput="handleSearchInput()" onfocus="handleSearchInput()">
+      <div id="searchDropdown" class="search-dropdown"></div>
     </div>
   </div>
 
-  <!-- 股票選單標籤 -->
-  <div class="stock-list" id="stockList"></div>
+  <!-- 自選股快選列 -->
+  <div class="watchlist-bar" id="watchlistBar"></div>
 
-  <!-- 價格卡片 -->
-  <div class="main-card">
-    <div class="price-header">
-      <div>
-        <div id="dispName" class="stock-title">載入中...</div>
-        <div id="dispSymbol" class="stock-sub">--</div>
+  <!-- 主內容區 (支援觸控滑動) -->
+  <div id="swipeArea" class="swipe-container">
+
+    <!-- 行情資訊區 -->
+    <div class="stock-detail-header">
+      <div class="stock-top-row">
+        <div>
+          <div id="dispName" class="stock-title-main">載入中...</div>
+          <div id="dispSymbol" class="stock-subtitle">--</div>
+        </div>
+        <div>
+          <div id="dispPrice" class="big-price">--</div>
+          <div id="dispChange" class="big-change">--</div>
+        </div>
       </div>
-      <div class="price-box">
-        <div><span id="dispPrice" class="price-num">--</span><span id="dispCurrency" class="currency-tag"></span></div>
-        <div id="dispChange" class="change-num">--</div>
+
+      <!-- 盤後/即時指標數據網格 -->
+      <div class="grid-metrics">
+        <div class="metric-box"><div class="metric-label">成交量</div><div id="valVol" class="metric-val">--</div></div>
+        <div class="metric-box"><div class="metric-label">最高</div><div id="valHigh" class="metric-val">--</div></div>
+        <div class="metric-box"><div class="metric-label">最低</div><div id="valLow" class="metric-val">--</div></div>
+        <div class="metric-box"><div class="metric-label">開盤</div><div id="valOpen" class="metric-val">--</div></div>
       </div>
     </div>
+
+    <!-- K線與技術分析視窗 -->
+    <div class="chart-wrapper">
+      <div class="chart-controls">
+        <div class="tf-btn-group">
+          <button class="tf-btn active" onclick="changeTimeframe('1d')">日K</button>
+          <button class="tf-btn" onclick="changeTimeframe('1wk')">週K</button>
+          <button class="tf-btn" onclick="changeTimeframe('1mo')">月K</button>
+        </div>
+        <div class="zoom-btn-group">
+          <button class="zoom-btn" onclick="adjustZoom(-15)">🔍 放大</button>
+          <button class="zoom-btn" onclick="adjustZoom(15)">🔎 縮小</button>
+        </div>
+      </div>
+
+      <!-- 十字線觸控查價浮動顯示 -->
+      <div id="crosshairInfo" class="crosshair-info">長按/滑動圖表檢視細節價位</div>
+
+      <canvas id="mainChart"></canvas>
+    </div>
+
+    <!-- 波段漲跌預測模型 -->
+    <div class="predict-card">
+      <div class="predict-header">
+        <div class="predict-title">🎯 隔日續漲/多頭機率預測</div>
+        <div id="predictScore" class="score-badge">--%</div>
+      </div>
+      <div class="meter-bg">
+        <div id="meterFill" class="meter-fill"></div>
+      </div>
+      <ul id="predictReasons" class="predict-reasons">
+        <li>正在分析技術面與量能指標...</li>
+      </ul>
+    </div>
+
+    <!-- 模擬下單按鈕 -->
+    <div class="trade-actions">
+      <button class="btn-buy" onclick="alert('已模擬送出【買進下單】委託！')">買進 (BUY)</button>
+      <button class="btn-sell" onclick="alert('已模擬送出【賣出下單】委託！')">賣出 (SELL)</button>
+    </div>
+
   </div>
 
-  <!-- K線與均線圖表 (原生 Canvas) -->
-  <div class="chart-card">
-    <div class="chart-header">
-      <span style="color:#8e8e93">日線技術分析</span>
-      <div class="legend">
-        <span class="leg-ma5">━ 5MA</span>
-        <span class="leg-ma20">━ 20MA</span>
-        <span class="leg-ma60">━ 60MA</span>
-      </div>
-    </div>
-    <canvas id="klineCanvas"></canvas>
+  <!-- 底部選單 -->
+  <div class="bottom-nav">
+    <a href="#" class="nav-item active"><span class="nav-icon">📈</span>自選看盤</a>
+    <a href="#" class="nav-item" onclick="alert('模擬帳戶資產：NT$ 1,000,000')"><span class="nav-icon">💼</span>模擬帳戶</a>
+    <a href="#" class="nav-item" onclick="alert('目前連線狀況：正常')"><span class="nav-icon">⚙️</span>系統設定</a>
   </div>
 
   <script>
-    // ⚠️ 請填寫你自己的 Cloudflare Worker 網址
-    const PROXY_URL = "https://stock-proxy.jeff8246532.workers.dev/";
+    const PROXY_URL = "https://stock-proxy.jeff8246532.workers.dev";
 
-    // 常用股票名稱/代號映射庫（支援輸入中文搜尋）
-    const STOCK_DICT = {
-      "台積電": "2330.TW", "聯發科": "2454.TW", "鴻海": "2317.TW", "廣達": "2382.TW", "緯創": "3231.TW",
-      "台積電ADR": "TSM", "輝達": "NVDA", "美光": "MU", "超微": "AMD", "蘋果": "AAPL",
-      "三星": "005930.KS", "三星電子": "005930.KS", "海力士": "000660.KS", "SK海力士": "000660.KS",
-      "東京威力": "8035.T", "愛德萬": "6857.T"
-    };
-
-    // 預設股票
-    const DEFAULT_STOCKS = [
-      { symbol: '2330.TW', name: '台積電', type: 'TWD' },
-      { symbol: 'TSM', name: '台積電 ADR', type: 'USD' },
-      { symbol: 'NVDA', name: '輝達', type: 'USD' },
-      { symbol: '000660.KS', name: 'SK 海力士', type: 'OTHER' },
-      { symbol: '005930.KS', name: '三星電子', type: 'OTHER' }
+    // 擴充常見台股與美股熱門資料庫（可輸入代號或關鍵字）
+    const STOCK_DATABASE = [
+      { name: "台積電", symbol: "2330.TW", market: "台股上市" },
+      { name: "聯發科", symbol: "2454.TW", market: "台股上市" },
+      { name: "鴻海", symbol: "2317.TW", market: "台股上市" },
+      { name: "廣達", symbol: "2382.TW", market: "台股上市" },
+      { name: "緯創", symbol: "3231.TW", market: "台股上市" },
+      { name: "台達電", symbol: "2308.TW", market: "台股上市" },
+      { name: "聯電", symbol: "2303.TW", market: "台股上市" },
+      { name: "長榮", symbol: "2603.TW", market: "台股上市" },
+      { name: "富邦金", symbol: "2881.TW", market: "台股上市" },
+      { name: "國泰金", symbol: "2882.TW", market: "台股上市" },
+      { name: "元大台灣50", symbol: "0050.TW", market: "台股 ETF" },
+      { name: "元大高股息", symbol: "0056.TW", market: "台股 ETF" },
+      { name: "群益台灣精選高息", symbol: "00919.TW", market: "台股 ETF" },
+      { name: "復華台灣科技優息", symbol: "00929.TW", market: "台股 ETF" },
+      { name: "台積電 ADR", symbol: "TSM", market: "美股 ADR" },
+      { name: "輝達 NVIDIA", symbol: "NVDA", market: "美股" },
+      { name: "超微 AMD", symbol: "AMD", market: "美股" },
+      { name: "美光 Micron", symbol: "MU", market: "美股" },
+      { name: "SK 海力士", symbol: "000660.KS", market: "韓股" },
+      { name: "三星電子", symbol: "005930.KS", market: "韓股" }
     ];
 
-    let myStocks = JSON.parse(localStorage.getItem('my_stocks_v2')) || DEFAULT_STOCKS;
-    let currentSymbol = myStocks[0].symbol;
-    let currentMarketFilter = 'ALL';
+    let myWatchlist = JSON.parse(localStorage.getItem('trade_app_watchlist')) || [
+      { name: "台積電", symbol: "2330.TW" },
+      { name: "聯發科", symbol: "2454.TW" },
+      { name: "台積電 ADR", symbol: "TSM" },
+      { name: "輝達", symbol: "NVDA" },
+      { name: "SK 海力士", symbol: "000660.KS" }
+    ];
 
-    function getStockType(symbol) {
-      if (symbol.endsWith('.TW') || symbol.endsWith('.TWO')) return { type: 'TWD', currency: 'TWD' };
-      if (symbol.endsWith('.KS')) return { type: 'OTHER', currency: 'KRW' };
-      if (symbol.endsWith('.T')) return { type: 'OTHER', currency: 'JPY' };
-      return { type: 'USD', currency: 'USD' };
-    }
+    let currentIndex = 0;
+    let currentInterval = '1d';
+    let visibleBarsCount = 50; // K線初始顯示數量
+    let rawKlineData = [];
 
-    function switchMarket(market) {
-      currentMarketFilter = market;
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
-      renderStockList();
-    }
-
-    function renderStockList() {
-      const listContainer = document.getElementById('stockList');
-      listContainer.innerHTML = '';
-
-      const filtered = myStocks.filter(s => currentMarketFilter === 'ALL' || s.type === currentMarketFilter);
-
-      filtered.forEach(s => {
-        const chip = document.createElement('div');
-        chip.className = `stock-chip ${s.symbol === currentSymbol ? 'active' : ''}`;
-        chip.innerHTML = `
-          <span onclick="selectStock('${s.symbol}')">${s.name}</span>
-          <span class="chip-del" onclick="deleteStock(event, '${s.symbol}')">✕</span>
-        `;
-        listContainer.appendChild(chip);
-      });
-    }
-
-    function selectStock(symbol) {
-      currentSymbol = symbol;
-      renderStockList();
-      fetchStockData(symbol);
-    }
-
-    function addStock() {
+    // --- 關鍵字搜尋下拉選單邏輯 ---
+    function handleSearchInput() {
       const input = document.getElementById('searchInput');
-      let query = input.value.trim();
-      if (!query) return;
+      const dropdown = document.getElementById('searchDropdown');
+      const query = input.value.trim().toUpperCase();
 
-      let symbol = STOCK_DICT[query] || query.toUpperCase();
-      
-      // 如果數字沒加字尾，預設為台股 .TW
-      if (/^\d{4}$/.test(symbol)) {
-        symbol += ".TW";
-      }
-
-      if (myStocks.some(s => s.symbol === symbol)) {
-        alert('該股票已在清單中');
+      if (!query) {
+        dropdown.style.display = 'none';
         return;
       }
 
-      const info = getStockType(symbol);
-      myStocks.push({ symbol: symbol, name: query.toUpperCase(), type: info.type });
-      localStorage.setItem('my_stocks_v2', JSON.stringify(myStocks));
-      input.value = '';
-      selectStock(symbol);
+      // 模糊比對名稱或代號
+      const matches = STOCK_DATABASE.filter(s => s.name.toUpperCase().includes(query) || s.symbol.includes(query));
+
+      if (matches.length === 0) {
+        dropdown.innerHTML = `
+          <div class="dropdown-item" onclick="addDirectSymbol('${query}')">
+            <div><span class="dropdown-name">搜尋自訂股票代號</span></div>
+            <div class="dropdown-symbol">${query}</div>
+          </div>`;
+      } else {
+        dropdown.innerHTML = matches.map(s => `
+          <div class="dropdown-item" onclick="selectFromDropdown('${s.symbol}', '${s.name}')">
+            <div><span class="dropdown-name">${s.name}</span> <span style="font-size:0.75rem; color:#2962ff;">${s.market}</span></div>
+            <div class="dropdown-symbol">${s.symbol}</div>
+          </div>
+        `).join('');
+      }
+      dropdown.style.display = 'block';
     }
 
-    function deleteStock(e, symbol) {
+    function selectFromDropdown(symbol, name) {
+      document.getElementById('searchDropdown').style.display = 'none';
+      document.getElementById('searchInput').value = '';
+      addStockToWatchlist(symbol, name);
+    }
+
+    function addDirectSymbol(query) {
+      let symbol = query;
+      if (/^\d{4}$/.test(symbol)) symbol += ".TW";
+      selectFromDropdown(symbol, symbol);
+    }
+
+    // 點擊外部關閉選單
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-container')) {
+        document.getElementById('searchDropdown').style.display = 'none';
+      }
+    });
+
+    // --- 自選股清單管理 ---
+    function renderWatchlist() {
+      const bar = document.getElementById('watchlistBar');
+      bar.innerHTML = myWatchlist.map((item, idx) => `
+        <div class="watch-tag ${idx === currentIndex ? 'active' : ''}" onclick="switchStockIndex(${idx})">
+          <span>${item.name}</span>
+          <span class="watch-del" onclick="removeStock(event, ${idx})">✕</span>
+        </div>
+      `).join('');
+    }
+
+    function switchStockIndex(idx) {
+      currentIndex = idx;
+      renderWatchlist();
+      loadCurrentStockData();
+    }
+
+    function addStockToWatchlist(symbol, name) {
+      if (myWatchlist.some(s => s.symbol === symbol)) {
+        const existIdx = myWatchlist.findIndex(s => s.symbol === symbol);
+        switchStockIndex(existIdx);
+        return;
+      }
+      myWatchlist.push({ symbol, name });
+      localStorage.setItem('trade_app_watchlist', JSON.stringify(myWatchlist));
+      currentIndex = myWatchlist.length - 1;
+      renderWatchlist();
+      loadCurrentStockData();
+    }
+
+    function removeStock(e, idx) {
       e.stopPropagation();
-      if (myStocks.length <= 1) return alert('請至少保留一檔股票');
-      myStocks = myStocks.filter(s => s.symbol !== symbol);
-      localStorage.setItem('my_stocks_v2', JSON.stringify(myStocks));
-      if (currentSymbol === symbol) currentSymbol = myStocks[0].symbol;
-      renderStockList();
-      fetchStockData(currentSymbol);
+      if (myWatchlist.length <= 1) return alert('請至少保留一檔自選股');
+      myWatchlist.splice(idx, 1);
+      if (currentIndex >= myWatchlist.length) currentIndex = myWatchlist.length - 1;
+      localStorage.setItem('trade_app_watchlist', JSON.stringify(myWatchlist));
+      renderWatchlist();
+      loadCurrentStockData();
     }
 
-    async function fetchStockData(symbol) {
+    // --- 左右滑動切換個股手勢 ---
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const swipeArea = document.getElementById('swipeArea');
+
+    swipeArea.addEventListener('touchstart', e => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    swipeArea.addEventListener('touchend', e => {
+      const deltaX = e.changedTouches[0].clientX - touchStartX;
+      const deltaY = e.changedTouches[0].clientY - touchStartY;
+
+      // 判斷為水平滑動且滑動距離大於 60px
+      if (Math.abs(deltaX) > 60 && Math.abs(deltaY) < 40) {
+        if (deltaX < 0 && currentIndex < myWatchlist.length - 1) {
+          switchStockIndex(currentIndex + 1); // 向左滑 -> 下一檔
+        } else if (deltaX > 0 && currentIndex > 0) {
+          switchStockIndex(currentIndex - 1); // 向右滑 -> 上一檔
+        }
+      }
+    }, { passive: true });
+
+    // --- 抓取與解析資料 ---
+    async function loadCurrentStockData() {
+      const stock = myWatchlist[currentIndex];
+      document.getElementById('dispName').innerText = stock.name;
+      document.getElementById('dispSymbol').innerText = stock.symbol;
+
       try {
-        // ⚠️ 強制請求 range=1y 確保抓滿近一年的歷史 K 線資料
-        const res = await fetch(`${PROXY_URL}?symbol=${symbol}&range=1y`);
+        const res = await fetch(`${PROXY_URL}?symbol=${stock.symbol}&range=1y&interval=${currentInterval}`);
         const json = await res.json();
 
-        if (!json.chart || !json.chart.result || !json.chart.result[0]) {
-          alert('找不到此股票資料，請檢查代號！');
+        if (!json.chart || !json.chart.result) {
+          alert('報價資料讀取失敗，請確認代號！');
           return;
         }
 
-        const result = json.chart.result[0];
-        const quotes = result.indicators.quote[0];
-        const timestamps = result.timestamp;
-        const meta = result.meta;
+        const resData = json.chart.result[0];
+        const quotes = resData.indicators.quote[0];
+        const timestamps = resData.timestamp;
 
-        if (!timestamps || timestamps.length < 2) {
-          alert(`代號 ${symbol} 抓到的歷史 K 線資料不足，無法繪製均線！`);
-          return;
-        }
-
-        let kData = [];
+        rawKlineData = [];
         for (let i = 0; i < timestamps.length; i++) {
-          // 確保 Open, High, Low, Close 都有值
-          if (
-            quotes.close[i] !== null && 
-            quotes.open[i] !== null &&
-            quotes.high[i] !== null &&
-            quotes.low[i] !== null
-          ) {
-            kData.push({
+          if (quotes.close[i] && quotes.open[i]) {
+            const dateStr = new Date(timestamps[i] * 1000).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' });
+            rawKlineData.push({
+              date: dateStr,
               open: quotes.open[i],
               high: quotes.high[i],
               low: quotes.low[i],
-              close: quotes.close[i]
+              close: quotes.close[i],
+              volume: quotes.volume[i] || 0
             });
           }
         }
 
-        const info = getStockType(symbol);
-        document.getElementById('dispName').innerText = meta.shortName || symbol;
-        document.getElementById('dispSymbol').innerText = symbol;
-        document.getElementById('dispCurrency').innerText = info.currency;
-
-        const last = kData[kData.length - 1];
-        const prev = kData[kData.length - 2] || last;
+        // 更新報價卡片與指標
+        const last = rawKlineData[rawKlineData.length - 1];
+        const prev = rawKlineData[rawKlineData.length - 2] || last;
         const diff = (last.close - prev.close).toFixed(2);
         const pct = ((diff / prev.close) * 100).toFixed(2);
         const isUp = diff >= 0;
@@ -251,113 +381,222 @@
         document.getElementById('dispPrice').innerText = last.close.toFixed(2);
         const changeEl = document.getElementById('dispChange');
         changeEl.innerText = `${isUp ? '+' : ''}${diff} (${isUp ? '+' : ''}${pct}%)`;
-        changeEl.className = `change-num ${isUp ? 'up' : 'down'}`;
+        changeEl.className = `big-change ${isUp ? 'up' : 'down'}`;
 
-        // 畫出 K 線與 5MA / 20MA / 60MA
-        drawCanvasChart(kData);
+        document.getElementById('valVol').innerText = (last.volume / 1000).toFixed(0) + " 張";
+        document.getElementById('valHigh').innerText = last.high.toFixed(2);
+        document.getElementById('valLow').innerText = last.low.toFixed(2);
+        document.getElementById('valOpen').innerText = last.open.toFixed(2);
+
+        // 重新繪製圖表與預測模型
+        renderCanvasChart();
+        calculateProbabilityModel();
 
       } catch (err) {
-        console.error("抓取失敗:", err);
+        console.error("載入失敗:", err);
       }
     }
 
-    // Canvas K線與均線繪製器
-    function drawCanvasChart(data) {
-      const canvas = document.getElementById('klineCanvas');
+    function changeTimeframe(tf) {
+      currentInterval = tf;
+      document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      loadCurrentStockData();
+    }
+
+    function adjustZoom(delta) {
+      visibleBarsCount = Math.max(20, Math.min(120, visibleBarsCount + delta));
+      renderCanvasChart();
+    }
+
+    // --- Canvas K線 + 成交量 + 5/20/60MA 專業繪製引擎 ---
+    function renderCanvasChart(crosshairIndex = null) {
+      const canvas = document.getElementById('mainChart');
       const ctx = canvas.getContext('2d');
-      
-      // 解決 Retina 螢幕高畫質渲染問題
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
+      
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       ctx.scale(dpr, dpr);
 
-      const width = rect.width;
-      const height = rect.height;
+      const W = rect.width;
+      const H = rect.height;
+      const klineH = H * 0.68; // K線佔 68% 高度
+      const volH = H * 0.25;   // 成交量佔 25% 高度
+      const volTop = H * 0.72;
 
-      ctx.clearRect(0, 0, width, height);
+      ctx.clearRect(0, 0, W, H);
 
-      // 只取最近 60 天畫圖
-      const chartData = data.slice(-60);
-      
-      // 計算 MA
-      const getMA = (days) => {
-        return chartData.map((_, idx) => {
-          if (idx < days - 1) return null;
-          let sum = 0;
-          for (let i = 0; i < days; i++) sum += chartData[idx - i].close;
-          return sum / days;
-        });
-      };
+      const data = rawKlineData.slice(-visibleBarsCount);
+      if (data.length === 0) return;
 
-      const ma5 = getMA(5);
-      const ma20 = getMA(20);
-      const ma60 = getMA(60);
-
-      // 計算極值
-      let min = Math.min(...chartData.map(d => d.low));
-      let max = Math.max(...chartData.map(d => d.high));
-      const padding = (max - min) * 0.1;
-      min -= padding;
-      max += padding;
-
-      const getY = (val) => height - ((val - min) / (max - min)) * height;
-      const candleWidth = (width / chartData.length) * 0.6;
-      const step = width / chartData.length;
-
-      // 1. 畫 K 線
-      chartData.forEach((d, i) => {
-        const x = i * step + step / 2;
-        const isUp = d.close >= d.open;
-        const color = isUp ? '#ff453a' : '#30d158';
-
-        ctx.strokeStyle = color;
-        ctx.fillStyle = color;
-        ctx.lineWidth = 1.5;
-
-        // 上下影線
-        ctx.beginPath();
-        ctx.moveTo(x, getY(d.high));
-        ctx.lineTo(x, getY(d.low));
-        ctx.stroke();
-
-        // 實體
-        const yOpen = getY(d.open);
-        const yClose = getY(d.close);
-        ctx.fillRect(x - candleWidth / 2, Math.min(yOpen, yClose), candleWidth, Math.max(Math.abs(yClose - yOpen), 2));
+      // 算 MA 均線
+      const calcMA = (period) => data.map((_, i) => {
+        if (i < period - 1) return null;
+        let sum = 0;
+        for (let j = 0; j < period; j++) sum += data[i - j].close;
+        return sum / period;
       });
 
-      // 2. 畫 MA 均線
-      const drawLine = (maArray, color) => {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        let started = false;
+      const ma5 = calcMA(5);
+      const ma20 = calcMA(20);
+      const ma60 = calcMA(60);
 
-        maArray.forEach((val, i) => {
+      let minP = Math.min(...data.map(d => d.low));
+      let maxP = Math.max(...data.map(d => d.high));
+      const pad = (maxP - minP) * 0.05;
+      minP -= pad; maxP += pad;
+
+      const maxVol = Math.max(...data.map(d => d.volume)) || 1;
+
+      const getPy = (price) => klineH - ((price - minP) / (maxP - minP)) * klineH;
+      const getVy = (vol) => H - ((vol / maxVol) * volH);
+
+      const step = W / data.length;
+      const candleW = step * 0.6;
+
+      // 畫背景網格
+      ctx.strokeStyle = '#1e222d';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 3; i++) {
+        const y = (klineH / 4) * i;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+
+      // 1. 繪製 K 線與成交量柱狀圖
+      data.forEach((d, i) => {
+        const x = i * step + step / 2;
+        const isUp = d.close >= d.open;
+        const color = isUp ? '#ef5350' : '#26a69a';
+
+        // K線影線
+        ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(x, getPy(d.high)); ctx.lineTo(x, getPy(d.low)); ctx.stroke();
+
+        // K線實體
+        ctx.fillStyle = color;
+        const yOpen = getPy(d.open);
+        const yClose = getPy(d.close);
+        ctx.fillRect(x - candleW / 2, Math.min(yOpen, yClose), candleW, Math.max(Math.abs(yClose - yOpen), 2));
+
+        // 成交量柱
+        ctx.fillRect(x - candleW / 2, getVy(d.volume), candleW, H - getVy(d.volume));
+      });
+
+      // 2. 繪製均線
+      const drawMA = (maArr, color) => {
+        ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
+        let started = false;
+        maArr.forEach((val, i) => {
           if (val !== null) {
             const x = i * step + step / 2;
-            const y = getY(val);
-            if (!started) {
-              ctx.moveTo(x, y);
-              started = true;
-            } else {
-              ctx.lineTo(x, y);
-            }
+            const y = getPy(val);
+            if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
           }
         });
         ctx.stroke();
       };
 
-      drawLine(ma5, '#e5c07b');
-      drawLine(ma20, '#61afef');
-      drawLine(ma60, '#c678dd');
+      drawMA(ma5, '#e5c07b');
+      drawMA(ma20, '#61afef');
+      drawMA(ma60, '#c678dd');
+
+      // 3. 觸控/滑鼠十字線查價
+      if (crosshairIndex !== null && data[crosshairIndex]) {
+        const target = data[crosshairIndex];
+        const cx = crosshairIndex * step + step / 2;
+        const cy = getPy(target.close);
+
+        ctx.strokeStyle = '#787b86'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 更新頂部查價資訊
+        document.getElementById('crosshairInfo').innerHTML = `
+          <span>日期: ${target.date}</span>
+          <span>收: ${target.close.toFixed(1)}</span>
+          <span>5MA: ${ma5[crosshairIndex]?.toFixed(1) || '--'}</span>
+          <span>20MA: ${ma20[crosshairIndex]?.toFixed(1) || '--'}</span>
+        `;
+      }
     }
 
+    // 觸控圖表互動 (Crosshair)
+    const chartCanvas = document.getElementById('mainChart');
+    chartCanvas.addEventListener('touchmove', e => {
+      const rect = chartCanvas.getBoundingClientRect();
+      const touchX = e.touches[0].clientX - rect.left;
+      const dataLength = Math.min(rawKlineData.length, visibleBarsCount);
+      const step = rect.width / dataLength;
+      const idx = Math.floor(touchX / step);
+      if (idx >= 0 && idx < dataLength) renderCanvasChart(idx);
+    }, { passive: true });
+
+    // --- 波段漲跌預測模型邏輯 (基於波段量能/均線排列) ---
+    function calculateProbabilityModel() {
+      if (rawKlineData.length < 20) return;
+
+      const len = rawKlineData.length;
+      const last = rawKlineData[len - 1];
+      const data = rawKlineData.slice(-60);
+
+      // 計算 5MA, 20MA, 60MA
+      const getMA = (days) => data.slice(-days).reduce((acc, curr) => acc + curr.close, 0) / days;
+      const ma5 = getMA(5);
+      const ma20 = getMA(20);
+      const ma60 = getMA(60);
+
+      // 均量 (5日)
+      const avgVol5 = data.slice(-5).reduce((acc, curr) => acc + curr.volume, 0) / 5;
+
+      let score = 50; // 基本分 50%
+      let reasons = [];
+
+      // 1. 均線多頭排列檢查 (最重要波段指標)
+      if (last.close > ma5 && ma5 > ma20 && ma20 > ma60) {
+        score += 25;
+        reasons.push("🔥 均線呈標準強勢多頭排列 (價格 > 5MA > 20MA > 60MA)。");
+      } else if (last.close > ma20) {
+        score += 10;
+        reasons.push("✅ 站穩 20 日月線生命線之上，波段趨勢向上。");
+      } else {
+        score -= 15;
+        reasons.push("⚠️ 股價跌破月線，波段面臨整理壓力。");
+      }
+
+      // 2. 量能爆發檢查
+      if (last.volume > avgVol5 * 1.4) {
+        score += 15;
+        reasons.push("🚀 今日成交量較 5 日均量放量放大 40% 以上，主力進場動能強。");
+      } else if (last.volume < avgVol5 * 0.7) {
+        score -= 5;
+        reasons.push("📉 成交量持續萎縮，攻擊動能稍微不足。");
+      }
+
+      // 3. K線型態 (收紅長棒)
+      const candleBody = Math.abs(last.close - last.open);
+      const candleRange = last.high - last.low;
+      if (last.close > last.open && (candleBody / candleRange) > 0.6) {
+        score += 10;
+        reasons.push("🔴 今日收飽滿紅K棒，多頭掌控收盤。");
+      }
+
+      score = Math.max(15, Math.min(95, score)); // 限制在 15%~95%
+
+      // 渲染評分 UI
+      document.getElementById('predictScore').innerText = `${score}%`;
+      const fillEl = document.getElementById('meterFill');
+      fillEl.style.width = `${score}%`;
+
+      document.getElementById('predictReasons').innerHTML = reasons.map(r => `<li>${r}</li>`).join('');
+    }
+
+    // 初始化
     window.onload = () => {
-      renderStockList();
-      fetchStockData(currentSymbol);
+      renderWatchlist();
+      loadCurrentStockData();
     };
   </script>
 </body>
