@@ -1,960 +1,760 @@
 <!DOCTYPE html>
+
 <html lang="zh-TW" class="h-full bg-slate-900 text-slate-100">
+
 <head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%231c1c1e%27/%3E%3Cpath d=%27M7 23V12M16 20V7M25 25V14%27 stroke=%27%23ff453a%27 stroke-width=%275%27/%3E%3C/svg%3E">
+<meta name="description" content="Yahoo 台股成交量前20名、前一交易日排行與日週月K線、均線及成交量觀察。">
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>台股熱門成交金額排行 - iOS Style</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>台股量價觀察 | Yahoo 熱門排行</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script>
+
         tailwind.config = {
+
             darkMode: 'class',
+
             theme: {
+
                 extend: {
+
                     colors: {
+
                         ios: {
+
                             bg: '#000000',
+
                             card: '#1c1c1e',
+
                             cardSecondary: '#2c2c2e',
+
                             red: '#ff453a',     // 台股漲 (紅)
+
                             green: '#30d158',   // 台股跌 (綠)
+
                             blue: '#0a84ff',
+
                             orange: '#ff9f0a',
+
                             yellow: '#ffd60a',
+
                             purple: '#bf5af2',
+
                             gray: '#8e8e93',
+
                             gray2: '#636366',
+
                             border: '#38383a'
+
                         }
+
                     },
+
                     fontFamily: {
+
                         sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', '"Helvetica Neue"', 'sans-serif']
+
                     }
+
                 }
+
             }
+
         }
+
     </script>
+
     <style>
+
         body {
+
             -webkit-tap-highlight-color: transparent;
+
             user-select: none;
+
             -webkit-user-select: none;
+
         }
+
         .ios-blur {
+
             backdrop-filter: blur(20px);
+
             -webkit-backdrop-filter: blur(20px);
+
         }
+
         .hide-scrollbar::-webkit-scrollbar {
+
             display: none;
+
         }
+
         .hide-scrollbar {
+
             -ms-overflow-style: none;
+
             scrollbar-width: none;
+
         }
+
         .sheet-enter {
+
             transform: translateY(100%);
+
             transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+
         }
+
         .sheet-enter-active {
+
             transform: translateY(0%);
+
         }
+
         .sheet-exit {
+
             transform: translateY(0%);
+
             transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+
         }
+
         .sheet-exit-active {
+
             transform: translateY(100%);
+
         }
-    </style>
+
+    input,select,button{font:inherit}button{min-height:36px}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #0a84ff;outline-offset:3px}#chart-tooltip{max-width:75%;line-height:1.6}#ma-controls input{accent-color:#0a84ff}#sheet-content{max-width:1000px;margin:0 auto}#sheet-ma-signal{display:block;margin-top:6px}#kline-canvas{width:100%}header>div,main>section{width:100%;max-width:1000px;margin-left:auto;margin-right:auto}header{padding-top:max(20px,env(safe-area-inset-top))}nav{padding-bottom:max(12px,env(safe-area-inset-bottom))}#sheet-content>div:nth-child(3){padding-bottom:40px}@media(min-width:900px){header{padding-top:24px}#stock-rank-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}#stock-rank-list>*{margin:0}#tab-top-turnover>div.grid.grid-cols-12{display:none}}@media(max-width:450px){h1{font-size:21px!important}#sheet-content .flex.justify-between.items-center.bg-ios-cardSecondary{align-items:flex-start;gap:12px;flex-direction:column}#chart-tooltip{font-size:12px}#rank-summary{grid-template-columns:1fr 1fr 1fr}}
+</style>
+
 </head>
+
 <body class="h-full font-sans antialiased bg-black text-white flex flex-col justify-between overflow-hidden">
 
+
+
     <!-- iOS Header Container -->
+
     <header class="sticky top-0 z-30 bg-black/80 ios-blur border-b border-ios-border px-4 pt-10 pb-3 flex flex-col gap-2">
+
         <div class="flex justify-between items-center">
+
             <div>
+
                 <div class="flex items-center space-x-2">
+
                     <span class="inline-block w-2.5 h-2.5 rounded-full bg-ios-red animate-pulse"></span>
-                    <span class="text-xs font-semibold text-ios-gray tracking-wider uppercase">TWSE 台灣加權市場</span>
+
+                    <span class="text-xs font-semibold text-ios-gray tracking-wider uppercase">上市＋上櫃・Yahoo 股市</span>
+
                 </div>
+
                 <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                    成交金額熱門榜
-                    <span class="text-xs bg-ios-blue/20 text-ios-blue border border-ios-blue/30 px-2 py-0.5 rounded-full font-medium">億元排序</span>
+
+                    成交量熱門榜
+
+                    <span class="text-xs bg-ios-blue/20 text-ios-blue border border-ios-blue/30 px-2 py-0.5 rounded-full font-medium">Top 20</span>
+
                 </h1>
+
             </div>
+
             <button id="btn-api-modal" onclick="openApiModal()" class="flex items-center space-x-1 text-xs bg-ios-cardSecondary hover:bg-ios-border text-ios-blue px-3 py-1.5 rounded-full border border-ios-border transition">
+
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-                <span>Yahoo API 說明</span>
+
+                <span>資料設定</span>
+
             </button>
+
         </div>
+
+
 
         <!-- Dynamic Summary Bar -->
+
         <div class="flex items-center justify-between bg-ios-card px-3 py-2 rounded-xl text-xs border border-ios-border/50">
+
             <div class="flex items-center space-x-2">
-                <span class="text-ios-gray">今日預估總成交量：</span>
-                <span class="font-bold text-white tracking-wide">3,865.4 億</span>
+
+                <span class="text-ios-gray">本榜前 20 名成交金額：</span>
+
+                <span id="rank-total" class="font-bold text-white tracking-wide">—</span>
+
             </div>
+
             <div class="text-ios-gray">
-                最後更新：<span id="last-update-time">13:30:00</span>
+
+                最後更新：<span id="last-update-time">—</span>
+
             </div>
+
         </div>
+
     </header>
 
+
+
     <main id="main-content" class="flex-1 overflow-y-auto hide-scrollbar pb-24">
-        
+
+
+
         <!-- ==================== TAB 1: 成交金額排行榜 TOP 20 ==================== -->
+
         <section id="tab-top-turnover" class="px-4 py-3 space-y-4">
-            
+
+
+
             <!-- Day Segmented Toggle -->
+
             <div class="bg-ios-cardSecondary p-1 rounded-xl flex text-xs font-semibold">
+
                 <button id="toggle-today" onclick="switchDay('today')" class="flex-1 py-2 rounded-lg bg-ios-blue text-white shadow transition-all duration-200">
-                    🔥 今日成交金額榜 (Top 20)
+
+                    今日／最新交易日
+
                 </button>
+
                 <button id="toggle-yesterday" onclick="switchDay('yesterday')" class="flex-1 py-2 rounded-lg text-ios-gray hover:text-white transition-all duration-200">
-                    📅 前一日成交金額榜
+
+                    前一交易日
+
                 </button>
+
             </div>
 
+
+
+<div class="flex flex-wrap gap-2 items-center text-sm"><select id="rank-sort" onchange="loadRank()" aria-label="排行排序" class="bg-ios-cardSecondary border border-ios-border rounded-lg p-2"><option value="volume">成交量排序</option><option value="turnover">成交金額排序</option></select><label class="flex items-center gap-2"><input type="checkbox" id="include-etf" onchange="loadRank()">含 ETF</label><button onclick="loadRank(true)" class="ml-auto text-ios-blue p-2 rounded-lg bg-ios-card">重新整理</button></div><div id="rank-status" role="status" aria-live="polite" class="text-sm text-ios-gray leading-relaxed">讀取 Yahoo 排行中…</div><div id="rank-summary" class="grid grid-cols-3 gap-2"></div>
             <!-- Ranking List Table Header -->
+
             <div class="grid grid-cols-12 text-[11px] font-semibold text-ios-gray px-3 py-1">
+
                 <span class="col-span-1 text-center">排名</span>
+
                 <span class="col-span-4">股票名稱 / 代碼</span>
+
                 <span class="col-span-3 text-right">成交價 / 漲跌</span>
-                <span class="col-span-4 text-right">成交金額 (億) / 張數</span>
+
+                <span class="col-span-4 text-right">成交量 (張) / 金額</span>
+
             </div>
+
+
 
             <!-- List Container -->
+
             <div id="stock-rank-list" class="space-y-2">
+
                 <!-- Dynamic stock item cards will be injected here -->
+
             </div>
+
         </section>
+
+
 
         <!-- ==================== TAB 2: 個股搜尋與自選股 (WATCHLIST) ==================== -->
+
         <section id="tab-watchlist" class="px-4 py-3 space-y-4 hidden">
+
             <!-- Search Bar -->
+
             <div class="relative">
+
                 <div class="relative flex items-center">
+
                     <svg class="w-4 h-4 absolute left-3.5 text-ios-gray pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input id="search-input" type="text" placeholder="輸入股票名稱或代碼 (例如: 2330, 鴻海, 廣達)..." 
+
+                    <input id="search-input" type="text" placeholder="輸入代碼（2330.TW、6488.TWO）或榜內名稱" 
+
                         oninput="onSearchInput(this.value)"
+
                         class="w-full bg-ios-card border border-ios-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-ios-gray focus:outline-none focus:border-ios-blue transition">
+
                 </div>
+
                 <!-- Autocomplete Dropdown -->
+
                 <div id="search-suggestions" class="absolute left-0 right-0 top-12 bg-ios-cardSecondary border border-ios-border rounded-xl shadow-2xl z-20 max-h-60 overflow-y-auto hidden">
+
                     <!-- Dynamic Search Results -->
+
                 </div>
+
             </div>
+
+
 
             <!-- Watchlist Header -->
+
             <div class="flex justify-between items-center pt-2">
+
                 <h2 class="text-lg font-bold text-white flex items-center gap-2">
+
                     <span>⭐ 我的自選股</span>
+
                     <span id="watchlist-count" class="text-xs bg-ios-cardSecondary text-ios-gray px-2 py-0.5 rounded-full">0</span>
+
                 </h2>
-                <span class="text-xs text-ios-gray">儲存於本地端 localStorage</span>
+
+                <span class="text-xs text-ios-gray">儲存於本地端 本機</span>
+
             </div>
+
+
 
             <!-- Watchlist Container -->
+
             <div id="watchlist-items" class="space-y-2">
+
                 <!-- Dynamic Watchlist Items -->
+
             </div>
+
         </section>
+
+
 
         <!-- ==================== TAB 3: 策略與指標訊號測試 ==================== -->
+
         <section id="tab-strategies" class="px-4 py-3 space-y-4 hidden">
+
             <div class="bg-gradient-to-r from-ios-card to-ios-cardSecondary p-4 rounded-2xl border border-ios-border">
+
                 <h2 class="text-base font-bold text-white flex items-center gap-2">
+
                     <svg class="w-5 h-5 text-ios-yellow" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 103.636 5.05l-.707.707a1 1 0 001.414 1.414l.707-.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1a1 1 0 10-2 0v1a1 1 0 102 0zM12 14a1 1 0 100-2 1 1 0 000 2z"/></svg>
-                    AI 技術面指標策略篩選器
+
+                    量價訊號篩選
+
                 </h2>
-                <p class="text-xs text-ios-gray mt-1">針對熱門成交金額前 20 大個股，實時計算量價與均線策略訊號。</p>
+
+                <p class="text-xs text-ios-gray mt-1">針對所選熱門榜前 20 檔個股，計算量價與均線觀察條件。</p>
+
             </div>
+
+
 
             <!-- Strategy Selectors -->
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+
                 <button onclick="applyStrategy('breakout')" id="strat-btn-breakout" class="p-3 bg-ios-card border border-ios-blue text-left rounded-xl hover:bg-ios-cardSecondary transition">
+
                     <div class="text-xs font-semibold text-ios-blue">🚀 強勢追價型</div>
-                    <div class="text-sm font-bold text-white mt-1">突破 5MA + 成交額放量</div>
-                    <div class="text-[11px] text-ios-gray mt-1">適合短線動能交易</div>
+
+                    <div class="text-sm font-bold text-white mt-1">收盤突破 5MA＋量比 ≥ 1.5</div>
+
+                    <div class="text-[11px] text-ios-gray mt-1">量比＝當日量／前 5 個交易日均量</div>
+
                 </button>
+
+
 
                 <button onclick="applyStrategy('dip')" id="strat-btn-dip" class="p-3 bg-ios-card border border-ios-border text-left rounded-xl hover:bg-ios-cardSecondary transition">
+
                     <div class="text-xs font-semibold text-ios-green">🛡️ 季線支撐買點</div>
-                    <div class="text-sm font-bold text-white mt-1">拉回 60MA 附近 + 量縮</div>
-                    <div class="text-[11px] text-ios-gray mt-1">中長線佈局訊號</div>
+
+                    <div class="text-sm font-bold text-white mt-1">距 60MA ±3%＋量比 < 0.8</div>
+
+                    <div class="text-[11px] text-ios-gray mt-1">以日線計算；未完成交易日另行標示</div>
+
                 </button>
+
+
 
                 <button onclick="applyStrategy('top_surge')" id="strat-btn-top_surge" class="p-3 bg-ios-card border border-ios-border text-left rounded-xl hover:bg-ios-cardSecondary transition">
+
                     <div class="text-xs font-semibold text-ios-yellow">💰 資金狂湧型</div>
+
                     <div class="text-sm font-bold text-white mt-1">成交金額 > 100 億元</div>
-                    <div class="text-[11px] text-ios-gray mt-1">市場核心焦點主流股</div>
+
+                    <div class="text-[11px] text-ios-gray mt-1">排行中的高成交金額股票</div>
+
                 </button>
+
             </div>
+
+
 
             <!-- Strategy Results Box -->
+
             <div class="space-y-2">
+
                 <div class="flex justify-between items-center text-xs text-ios-gray px-1">
+
                     <span>滿足當前策略條件之股票</span>
+
                     <span id="strategy-match-count" class="text-ios-blue font-bold">符合 0 檔</span>
+
                 </div>
+
                 <div id="strategy-results-list" class="space-y-2">
+
                     <!-- Dynamic strategy results -->
+
                 </div>
+
             </div>
 
-            <!-- Backtest Summary Card -->
-            <div class="bg-ios-card p-4 rounded-xl border border-ios-border space-y-3">
-                <div class="text-xs font-bold text-ios-gray uppercase tracking-wider">近 60 日模擬回測績效表現</div>
-                <div class="grid grid-cols-3 gap-2 text-center">
-                    <div class="bg-ios-cardSecondary p-2 rounded-lg">
-                        <div class="text-[10px] text-ios-gray">策略勝率</div>
-                        <div id="bt-winrate" class="text-base font-bold text-ios-red">68.4%</div>
-                    </div>
-                    <div class="bg-ios-cardSecondary p-2 rounded-lg">
-                        <div class="text-[10px] text-ios-gray">平均報酬率</div>
-                        <div id="bt-return" class="text-base font-bold text-ios-red">+14.2%</div>
-                    </div>
-                    <div class="bg-ios-cardSecondary p-2 rounded-lg">
-                        <div class="text-[10px] text-ios-gray">最大回撤 (MDD)</div>
-                        <div id="bt-mdd" class="text-base font-bold text-ios-green">-5.1%</div>
-                    </div>
-                </div>
-            </div>
+
+
+<div class="bg-ios-card p-4 rounded-xl border border-ios-border text-sm text-ios-gray leading-relaxed">訊號依所選排行日期的日線計算，不包含後續價格。盤中日 K、週 K、月 K 可能尚未完成，累積量不宜直接與完整期間相比。放量代表交易活躍，成交金額代表交易規模，兩者不等於淨資金流入。此版本不顯示未計算的回測績效。</div>
         </section>
+
+
 
     </main>
 
+
+
     <!-- iOS Bottom Tab Bar Navigation -->
+
     <nav class="fixed bottom-0 left-0 right-0 bg-black/90 ios-blur border-t border-ios-border z-30 pb-5 pt-2 px-6">
+
         <div class="max-w-md mx-auto flex justify-around items-center">
+
             <button onclick="switchTab('top-turnover')" id="nav-top-turnover" class="flex flex-col items-center text-ios-blue transition">
+
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                <span class="text-[10px] font-medium mt-1">成交金額榜</span>
+
+                <span class="text-[10px] font-medium mt-1">熱門排行</span>
+
             </button>
+
             <button onclick="switchTab('watchlist')" id="nav-watchlist" class="flex flex-col items-center text-ios-gray hover:text-white transition">
+
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+
                 <span class="text-[10px] font-medium mt-1">自選股</span>
+
             </button>
+
             <button onclick="switchTab('strategies')" id="nav-strategies" class="flex flex-col items-center text-ios-gray hover:text-white transition">
+
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+
                 <span class="text-[10px] font-medium mt-1">訊號篩選</span>
+
             </button>
+
         </div>
+
     </nav>
 
+
+
     <!-- iOS Stock Detail Overlay Modal Sheet -->
+
     <div id="stock-sheet" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex flex-col justify-end transition-opacity duration-300">
+
         <div id="sheet-content" class="bg-ios-card w-full h-[92vh] rounded-t-[28px] border-t border-ios-border flex flex-col overflow-hidden shadow-2xl transform transition-transform duration-300 translate-y-full">
-            
+
+
+
             <!-- Handle bar for iOS feel -->
+
             <div class="w-full flex justify-center pt-3 pb-1" onclick="closeStockSheet()">
+
                 <div class="w-10 h-1 bg-ios-gray2 rounded-full"></div>
+
             </div>
+
+
 
             <!-- Detail Header -->
+
             <div class="px-5 py-2 flex justify-between items-center border-b border-ios-border/60">
+
                 <div>
+
                     <div class="flex items-center space-x-2">
-                        <h3 id="sheet-stock-name" class="text-xl font-bold text-white">台積電</h3>
-                        <span id="sheet-stock-symbol" class="text-sm font-semibold text-ios-gray">2330.TW</span>
+
+                        <h3 id="sheet-stock-name" class="text-xl font-bold text-white">—</h3>
+
+                        <span id="sheet-stock-symbol" class="text-sm font-semibold text-ios-gray">—</span>
+
                     </div>
+
                     <div class="flex items-center space-x-3 mt-1">
-                        <span id="sheet-stock-price" class="text-2xl font-extrabold text-ios-red">985.0</span>
-                        <span id="sheet-stock-change" class="text-xs font-bold text-ios-red bg-ios-red/10 px-2 py-0.5 rounded-md">+20.0 (+2.07%)</span>
+
+                        <span id="sheet-stock-price" class="text-2xl font-extrabold text-ios-red">—</span>
+
+                        <span id="sheet-stock-change" class="text-xs font-bold text-ios-red bg-ios-red/10 px-2 py-0.5 rounded-md">—</span>
+
                     </div>
+
                 </div>
+
                 <div class="flex items-center space-x-2">
+
                     <button id="sheet-btn-watchlist" onclick="toggleWatchlistFromSheet()" class="p-2 rounded-full bg-ios-cardSecondary text-ios-gray hover:text-ios-yellow transition">
+
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+
                     </button>
-                    <button onclick="closeStockSheet()" class="p-2 rounded-full bg-ios-cardSecondary text-ios-gray hover:text-white transition">
+
+                    <button aria-label="關閉個股線圖" onclick="closeStockSheet()" class="p-2 rounded-full bg-ios-cardSecondary text-ios-gray hover:text-white transition">
+
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+
                     </button>
+
                 </div>
+
             </div>
+
+
 
             <!-- Scrollable Sheet Content Body -->
+
             <div class="flex-1 overflow-y-auto px-5 py-4 space-y-4 hide-scrollbar">
-                
+
+
+
                 <!-- Key Stat Badges -->
+
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+
                     <div class="bg-ios-cardSecondary p-2.5 rounded-xl border border-ios-border/40">
+
                         <div class="text-[11px] text-ios-gray">成交金額</div>
-                        <div id="sheet-turnover-val" class="text-sm font-bold text-ios-yellow mt-0.5">385.2 億元</div>
+
+                        <div id="sheet-turnover-val" class="text-sm font-bold text-ios-yellow mt-0.5">—</div>
+
                     </div>
+
                     <div class="bg-ios-cardSecondary p-2.5 rounded-xl border border-ios-border/40">
+
                         <div class="text-[11px] text-ios-gray">成交張數</div>
-                        <div id="sheet-volume-val" class="text-sm font-bold text-white mt-0.5">39,120 張</div>
+
+                        <div id="sheet-volume-val" class="text-sm font-bold text-white mt-0.5">—</div>
+
                     </div>
+
                     <div class="bg-ios-cardSecondary p-2.5 rounded-xl border border-ios-border/40">
+
                         <div class="text-[11px] text-ios-gray">最高 / 最低</div>
-                        <div id="sheet-high-low" class="text-sm font-bold text-white mt-0.5">990 / 975</div>
+
+                        <div id="sheet-high-low" class="text-sm font-bold text-white mt-0.5">—</div>
+
                     </div>
+
                     <div class="bg-ios-cardSecondary p-2.5 rounded-xl border border-ios-border/40">
+
                         <div class="text-[11px] text-ios-gray">開盤價</div>
-                        <div id="sheet-open-price" class="text-sm font-bold text-white mt-0.5">978.0</div>
+
+                        <div id="sheet-open-price" class="text-sm font-bold text-white mt-0.5">—</div>
+
                     </div>
+
                 </div>
+
+
 
                 <!-- Technical Chart Controls Bar -->
+
                 <div class="flex justify-between items-center bg-ios-cardSecondary p-1 rounded-xl">
+
                     <div class="flex space-x-1 text-xs">
+
                         <button onclick="setChartPeriod('D')" id="btn-period-D" class="px-3 py-1 rounded-lg bg-ios-blue text-white font-medium">日 K</button>
+
                         <button onclick="setChartPeriod('W')" id="btn-period-W" class="px-3 py-1 rounded-lg text-ios-gray hover:text-white font-medium">週 K</button>
+
                         <button onclick="setChartPeriod('M')" id="btn-period-M" class="px-3 py-1 rounded-lg text-ios-gray hover:text-white font-medium">月 K</button>
+
                     </div>
 
-                    <!-- Indicators Toggle -->
-                    <div class="flex items-center space-x-3 text-[11px] pr-2">
-                        <label class="flex items-center space-x-1 cursor-pointer">
-                            <span class="w-2.5 h-0.5 bg-ios-yellow inline-block"></span>
-                            <span class="text-ios-yellow">5MA</span>
-                        </label>
-                        <label class="flex items-center space-x-1 cursor-pointer">
-                            <span class="w-2.5 h-0.5 bg-ios-purple inline-block"></span>
-                            <span class="text-ios-purple">10MA</span>
-                        </label>
-                        <label class="flex items-center space-x-1 cursor-pointer">
-                            <span class="w-2.5 h-0.5 bg-ios-blue inline-block"></span>
-                            <span class="text-ios-blue">60MA</span>
-                        </label>
-                    </div>
-                </div>
 
+
+<div id="ma-controls" class="flex flex-wrap gap-3 text-sm pr-2"></div></div>
+<div id="chart-status" role="status" aria-live="polite" class="text-sm text-ios-gray leading-relaxed"></div><div class="flex items-center gap-3 text-sm"><label for="visible-bars">顯示根數</label><select id="visible-bars" onchange="renderKLineChart()" class="bg-ios-cardSecondary p-2 rounded-lg"><option>60</option><option selected>100</option><option>180</option></select><button onclick="shiftChart(-1)" class="text-ios-blue">較早</button><button onclick="shiftChart(1)" class="text-ios-blue">較新</button></div>
                 <!-- Interactive HTML5 Canvas Technical Chart Container -->
+
                 <div class="relative bg-black/60 rounded-2xl p-2 border border-ios-border">
-                    <canvas id="kline-canvas" class="w-full h-64 block cursor-crosshair"></canvas>
-                    <div id="chart-tooltip" class="absolute top-3 left-3 bg-black/80 border border-ios-border text-[10px] text-ios-gray p-2 rounded-lg pointer-events-none hidden">
+
+                    <canvas id="kline-canvas" class="w-full block cursor-crosshair" style="height:390px;touch-action:pan-y"></canvas>
+
+                    <div id="chart-tooltip" class="absolute top-3 left-3 bg-black/90 border border-ios-border text-xs text-ios-gray p-2 rounded-lg pointer-events-none hidden">
+
                         <!-- Crosshair Tooltip details -->
+
                     </div>
+
                 </div>
+
+
 
                 <!-- Technical Indicator Signal Summary -->
+
                 <div class="bg-ios-cardSecondary p-3 rounded-xl border border-ios-border/50 flex justify-between items-center text-xs">
+
                     <div>
+
                         <span class="text-ios-gray">均線綜合訊號：</span>
-                        <span id="sheet-ma-signal" class="font-bold text-ios-red">多頭排列 (突破5日均線)</span>
+
+                        <span id="sheet-ma-signal" class="font-bold text-ios-red">—</span>
+
                     </div>
-                    <span class="text-[11px] text-ios-blue bg-ios-blue/10 px-2 py-0.5 rounded">強勢成交量</span>
+
+                    <span id="sheet-volume-signal" class="text-sm text-ios-blue"></span>
+
                 </div>
 
+
+
             </div>
+
         </div>
+
     </div>
 
-    <!-- Yahoo Finance API & Proxy Explanation Modal -->
-    <div id="api-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
-        <div class="bg-ios-card w-full max-w-lg rounded-2xl border border-ios-border p-5 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b border-ios-border pb-3">
-                <h3 class="text-base font-bold text-white flex items-center gap-2">
-                    <svg class="w-5 h-5 text-ios-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Yahoo 股市 API 數據介接說明
-                </h3>
-                <button onclick="closeApiModal()" class="text-ios-gray hover:text-white">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
 
-            <div class="text-xs text-ios-gray space-y-2 leading-relaxed">
-                <p><strong class="text-white">1. Yahoo Finance API 格式 (台股)：</strong><br>
-                台股上市公司代碼需加上 <code class="text-ios-yellow">.TW</code> (如台積電為 <code class="text-ios-yellow">2330.TW</code>)。</p>
-                
-                <p><strong class="text-white">2. 即時 K 線與成交金額 API Endpoint：</strong><br>
-                <code class="block bg-black p-2 rounded text-[11px] text-ios-blue overflow-x-auto mt-1">
-                https://query1.finance.yahoo.com/v8/finance/chart/2330.TW?range=3m&interval=1d
-                </code></p>
 
-                <p><strong class="text-white">3. CORS 跨域解法 (Proxy Bridge Example):</strong><br>
-                由於瀏覽器同源策略，前端直接調用會觸發 CORS 封鎖，建議通過 CORS Proxy 或 Node.js 後端轉發。</p>
-            </div>
-
-            <!-- Code Snippet Container -->
-            <div class="bg-black/80 rounded-xl p-3 border border-ios-border">
-                <div class="flex justify-between items-center text-[10px] text-ios-gray mb-2">
-                    <span>JavaScript API Fetch 範例代碼</span>
-                    <button onclick="copyApiCode()" class="text-ios-blue hover:underline">複製代碼</button>
-                </div>
-                <pre id="api-code-snippet" class="text-[11px] text-ios-green font-mono overflow-x-auto leading-tight">
-async function fetchTWStock(symbol = '2330.TW') {
-  const proxy = 'https://corsproxy.io/?';
-  const target = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=1m&interval=1d`;
-  
-  const res = await fetch(proxy + encodeURIComponent(target));
-  const data = await res.json();
-  const result = data.chart.result[0];
-  
-  // 計算最新成交金額 (單位: 億元)
-  const meta = result.meta;
-  const lastPrice = meta.regularMarketPrice;
-  const lastVolume = meta.regularMarketVolume; // 張數
-  const turnoverInHundredMillion = ((lastPrice * lastVolume) / 100000).toFixed(2);
-  
-  return {
-    price: lastPrice,
-    turnover: turnoverInHundredMillion,
-    quotes: result.indicators.quote[0]
-  };
-}</pre>
-            </div>
-
-            <button onclick="closeApiModal()" class="w-full py-2.5 bg-ios-blue text-white rounded-xl text-xs font-semibold hover:bg-blue-600 transition">
-                我瞭解了
-            </button>
-        </div>
-    </div>
-
-    <script>
-        // ==================== DATA MODELS (Sorted by Turnover Amount in 億元) ====================
-        
-        // TODAY TURNOVER TOP 20 STOCKS DATA
-        const TODAY_STOCKS = [
-            { rank: 1, symbol: '2330', name: '台積電', price: 985.0, change: 20.0, changePct: 2.07, turnover: 385.2, volume: 39120, open: 978.0, high: 990.0, low: 975.0, maSignal: '多頭排列 (5MA/10MA向上)' },
-            { rank: 2, symbol: '2317', name: '鴻海', price: 206.5, change: 3.5, changePct: 1.72, turnover: 182.4, volume: 88900, open: 204.0, high: 208.0, low: 203.0, maSignal: '突破 5MA 放量衝刺' },
-            { rank: 3, symbol: '2454', name: '聯發科', price: 1285.0, change: -10.0, changePct: -0.77, turnover: 145.8, volume: 11390, open: 1295.0, high: 1300.0, low: 1275.0, maSignal: '高檔震盪 (60MA支撐)' },
-            { rank: 4, symbol: '2382', name: '廣達', price: 288.5, change: 9.0, changePct: 3.22, turnover: 128.6, volume: 45120, open: 281.0, high: 290.0, low: 280.0, maSignal: '強勢長紅 (突破季線)' },
-            { rank: 5, symbol: '3231', name: '緯創', price: 112.5, change: 4.5, changePct: 4.17, turnover: 112.3, volume: 100200, open: 108.5, high: 113.5, low: 108.0, maSignal: '量增價漲 攻擊訊號' },
-            { rank: 6, symbol: '3017', name: '奇鋐', price: 642.0, change: -8.0, changePct: -1.23, turnover: 98.5, volume: 15390, open: 650.0, high: 655.0, low: 638.0, maSignal: '拉回 10MA 支撐' },
-            { rank: 7, symbol: '6669', name: '緯穎', price: 2150.0, change: 60.0, changePct: 2.87, turnover: 92.1, volume: 4280, open: 2100.0, high: 2180.0, low: 2090.0, maSignal: '高檔突破 均線多頭' },
-            { rank: 8, symbol: '2603', name: '長榮', price: 192.5, change: -1.0, changePct: -0.52, turnover: 85.4, volume: 44480, open: 194.0, high: 195.0, low: 191.5, maSignal: '高殖利率 橫盤整理' },
-            { rank: 9, symbol: '3037', name: '欣興', price: 178.5, change: 3.0, changePct: 1.71, turnover: 78.2, volume: 43900, open: 176.0, high: 180.0, low: 175.0, maSignal: '底部放量 突破5MA' },
-            { rank: 10, symbol: '2308', name: '台達電', price: 392.0, change: 2.0, changePct: 0.51, turnover: 72.6, volume: 18600, open: 390.0, high: 395.0, low: 388.0, maSignal: '穩健填息 季線之上' },
-            { rank: 11, symbol: '2376', name: '技嘉', price: 265.5, change: 6.0, changePct: 2.31, turnover: 68.9, volume: 26000, open: 260.0, high: 268.0, low: 259.0, maSignal: 'AI伺服器拉貨 5MA支撐' },
-            { rank: 12, symbol: '3443', name: '創意', price: 1350.0, change: -30.0, changePct: -2.17, turnover: 64.5, volume: 4770, open: 1380.0, high: 1390.0, low: 1340.0, maSignal: '拉回測試 60MA 季線' },
-            { rank: 13, symbol: '3661', name: '世芯-KY', price: 2420.0, change: 30.0, changePct: 1.26, turnover: 61.2, volume: 2520, open: 2400.0, high: 2450.0, low: 2390.0, maSignal: '千金股回穩 5MA走揚' },
-            { rank: 14, symbol: '2356', name: '英業達', price: 52.8, change: 0.4, changePct: 0.76, turnover: 58.7, volume: 111800, open: 52.5, high: 53.5, low: 52.0, maSignal: '低價高量 區間震盪' },
-            { rank: 15, symbol: '2379', name: '瑞昱', price: 512.0, change: -2.0, changePct: -0.39, turnover: 54.3, volume: 10640, open: 515.0, high: 518.0, low: 508.0, maSignal: '網通IC 10MA洗盤' },
-            { rank: 16, symbol: '2408', name: '南亞科', price: 62.5, change: 3.1, changePct: 5.22, turnover: 51.8, volume: 83100, open: 59.8, high: 63.2, low: 59.5, maSignal: '記憶體復甦 長紅突破' },
-            { rank: 17, symbol: '2303', name: '聯電', price: 53.9, change: 0.1, changePct: 0.19, turnover: 49.2, volume: 91440, open: 53.8, high: 54.2, low: 53.6, maSignal: '成熟製程 狹幅打底' },
-            { rank: 18, symbol: '1519', name: '華城', price: 672.0, change: -12.0, changePct: -1.75, turnover: 46.5, volume: 6940, open: 685.0, high: 690.0, low: 665.0, maSignal: '重電龍頭 回檔60MA' },
-            { rank: 19, symbol: '2345', name: '智邦', price: 562.0, change: 6.0, changePct: 1.08, turnover: 43.8, volume: 7820, open: 558.0, high: 566.0, low: 555.0, maSignal: '800G交換機 緩步走揚' },
-            { rank: 20, symbol: '8299', name: '群聯', price: 588.0, change: 15.0, changePct: 2.62, turnover: 41.2, volume: 7040, open: 575.0, high: 592.0, low: 572.0, maSignal: '快閃記憶體 突破短期均線' }
-        ];
-
-        // YESTERDAY TURNOVER TOP 20 STOCKS DATA (Slightly varied for toggle testing)
-        const YESTERDAY_STOCKS = TODAY_STOCKS.map((item, idx) => {
-            const shift = (idx % 2 === 0) ? -1 : 1;
-            return {
-                ...item,
-                rank: idx + 1,
-                turnover: +(item.turnover * (0.92 + Math.random() * 0.15)).toFixed(1),
-                price: +(item.price * 0.99).toFixed(1),
-                changePct: +(item.changePct * -0.8).toFixed(2)
-            };
-        }).sort((a, b) => b.turnover - a.turnover);
-
-        // Cloudflare Worker 網址 (請換成你部署好 Worker 產生的網址)
-        const PROXY_URL = "https://stock-proxy.jeff8246532.workers.dev/";
-        
-        // 從 Cloudflare Worker 抓取個股真實資料的函式
-        async function fetchStockData(symbol) {
-            try {
-                // 自動判斷加上 .TW (若未附帶)
-                const formattedSymbol = symbol.includes('.') ? symbol : `${symbol}.TW`;
-                const response = await fetch(`${PROXY_URL}?symbol=${formattedSymbol}`);
-                
-                if (!response.ok) throw new Error('API 請求失敗');
-                
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('抓取股票資料失敗:', error);
-                return null;
-            }
-        }
-
-        async function openStockSheet(symbol) {
-            // 1. 呼叫你的 Worker API
-            const stockData = await fetchStockData(symbol);
-            
-            if (stockData) {
-                // 2. 更新 Sheet 裡面的文字與數據
-                document.getElementById('sheet-stock-name').innerText = stockData.name || symbol;
-                document.getElementById('sheet-stock-symbol').innerText = `${symbol}.TW`;
-                document.getElementById('sheet-stock-price').innerText = stockData.price;
-                document.getElementById('sheet-turnover-val').innerText = `${stockData.turnover} 億元`;
-                
-                // 3. 顯示 Sheet 視窗
-                const sheet = document.getElementById('stock-sheet');
-                sheet.classList.remove('hidden');
-                setTimeout(() => {
-                    document.getElementById('sheet-content').classList.remove('translate-y-full');
-                }, 10);
-            } else {
-                alert('無法取得該股票即時資料！');
-            }
-        }
-        // ==================== STREAMING_CHUNK: App Initializers and Event Handling ====================
-        
-        window.onload = function() {
-            renderRankList();
-            renderWatchlist();
-            applyStrategy('breakout');
-            initCanvasResize();
-        };
-
-        // Navigation Tab Switching
-        function switchTab(tab) {
-            activeTab = tab;
-            ['top-turnover', 'watchlist', 'strategies'].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.add('hidden');
-                document.getElementById(`nav-${t}`).className = "flex flex-col items-center text-ios-gray hover:text-white transition";
-            });
-
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.getElementById(`nav-${tab}`).className = "flex flex-col items-center text-ios-blue transition";
-
-            if(tab === 'watchlist') renderWatchlist();
-        }
-
-        // Toggle Day Segment (Today vs Yesterday)
-        function switchDay(day) {
-            currentDayTab = day;
-            const btnToday = document.getElementById('toggle-today');
-            const btnYesterday = document.getElementById('toggle-yesterday');
-
-            if(day === 'today') {
-                btnToday.className = "flex-1 py-2 rounded-lg bg-ios-blue text-white shadow transition-all duration-200";
-                btnYesterday.className = "flex-1 py-2 rounded-lg text-ios-gray hover:text-white transition-all duration-200";
-            } else {
-                btnYesterday.className = "flex-1 py-2 rounded-lg bg-ios-blue text-white shadow transition-all duration-200";
-                btnToday.className = "flex-1 py-2 rounded-lg text-ios-gray hover:text-white transition-all duration-200";
-            }
-            renderRankList();
-        }
-
-        // ==================== STREAMING_CHUNK: Rendering Stock List UI ====================
-        
-        function renderRankList() {
-            const data = (currentDayTab === 'today') ? TODAY_STOCKS : YESTERDAY_STOCKS;
-            const container = document.getElementById('stock-rank-list');
-            container.innerHTML = '';
-
-            data.forEach((stock, index) => {
-                const isPositive = stock.changePct >= 0;
-                const colorClass = isPositive ? 'text-ios-red' : 'text-ios-green';
-                const bgTagClass = isPositive ? 'bg-ios-red/10' : 'bg-ios-green/10';
-                
-                // Rank Badge Color
-                let rankBadge = `<span class="text-xs font-bold text-ios-gray">${index + 1}</span>`;
-                if(index === 0) rankBadge = `<span class="w-5 h-5 rounded-full bg-amber-400 text-black font-extrabold text-[11px] flex items-center justify-center">1</span>`;
-                if(index === 1) rankBadge = `<span class="w-5 h-5 rounded-full bg-slate-300 text-black font-extrabold text-[11px] flex items-center justify-center">2</span>`;
-                if(index === 2) rankBadge = `<span class="w-5 h-5 rounded-full bg-amber-700 text-white font-extrabold text-[11px] flex items-center justify-center">3</span>`;
-
-                const item = document.createElement('div');
-                item.className = "bg-ios-card hover:bg-ios-cardSecondary border border-ios-border/60 rounded-2xl p-3.5 grid grid-cols-12 items-center cursor-pointer transition transform active:scale-[0.99]";
-                item.onclick = () => openStockSheet(stock);
-
-                item.innerHTML = `
-                    <div class="col-span-1 flex justify-center">${rankBadge}</div>
-                    <div class="col-span-4 pl-1">
-                        <div class="font-bold text-sm text-white tracking-wide">${stock.name}</div>
-                        <div class="text-[11px] text-ios-gray font-mono">${stock.symbol}.TW</div>
-                    </div>
-                    <div class="col-span-3 text-right">
-                        <div class="font-bold text-sm ${colorClass}">${stock.price.toFixed(1)}</div>
-                        <div class="text-[10px] ${colorClass} ${bgTagClass} inline-block px-1.5 py-0.2 rounded mt-0.5 font-semibold">
-                            ${isPositive ? '+' : ''}${stock.changePct.toFixed(2)}%
-                        </div>
-                    </div>
-                    <div class="col-span-4 text-right">
-                        <!-- HIGHLIGHTED TURNOVER AMOUNT IN 億元 -->
-                        <div class="text-xs font-extrabold text-ios-yellow bg-ios-yellow/10 border border-ios-yellow/20 px-2 py-0.5 rounded-lg inline-block">
-                            ${stock.turnover.toFixed(1)} 億
-                        </div>
-                        <div class="text-[10px] text-ios-gray mt-0.5 font-mono">${(stock.volume / 10000).toFixed(1)}萬張</div>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        // ==================== STREAMING_CHUNK: Watchlist and Search Autocomplete Logic ====================
-
-        function onSearchInput(query) {
-            const dropdown = document.getElementById('search-suggestions');
-            if(!query.trim()) {
-                dropdown.classList.add('hidden');
-                return;
-            }
-
-            const q = query.toLowerCase().trim();
-            const matches = TODAY_STOCKS.filter(s => s.symbol.includes(q) || s.name.includes(q));
-
-            if(matches.length === 0) {
-                dropdown.innerHTML = `<div class="p-3 text-xs text-ios-gray text-center">未找到符合「${query}」的熱門股票</div>`;
-            } else {
-                dropdown.innerHTML = matches.map(s => `
-                    <div onclick="selectSearchStock('${s.symbol}')" class="p-3 border-b border-ios-border/40 hover:bg-ios-card flex justify-between items-center cursor-pointer">
-                        <div>
-                            <span class="font-bold text-sm text-white">${s.name}</span>
-                            <span class="text-xs text-ios-gray ml-2">${s.symbol}</span>
-                        </div>
-                        <span class="text-xs text-ios-yellow font-bold">${s.turnover} 億元</span>
-                    </div>
-                `).join('');
-            }
-            dropdown.classList.remove('hidden');
-        }
-
-        function selectSearchStock(symbol) {
-            document.getElementById('search-suggestions').classList.add('hidden');
-            document.getElementById('search-input').value = '';
-            const stock = TODAY_STOCKS.find(s => s.symbol === symbol);
-            if(stock) openStockSheet(stock);
-        }
-
-        function toggleWatchlist(symbol) {
-            if(watchlist.includes(symbol)) {
-                watchlist = watchlist.filter(s => s !== symbol);
-            } else {
-                watchlist.push(symbol);
-            }
-            localStorage.setItem('tw_watchlist', JSON.stringify(watchlist));
-            renderWatchlist();
-            updateSheetWatchlistBtn();
-        }
-
-        function renderWatchlist() {
-            const container = document.getElementById('watchlist-items');
-            document.getElementById('watchlist-count').innerText = watchlist.length;
-
-            if(watchlist.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-ios-card p-8 rounded-2xl text-center text-ios-gray space-y-2 border border-ios-border">
-                        <svg class="w-10 h-10 mx-auto text-ios-gray2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
-                        <div class="text-sm font-medium">尚無自選股</div>
-                        <div class="text-xs">在股票詳情頁點擊星號即可加入追蹤</div>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = '';
-            watchlist.forEach(sym => {
-                const stock = TODAY_STOCKS.find(s => s.symbol === sym) || { symbol: sym, name: '個股', price: 100.0, changePct: 0.0, turnover: 50.0 };
-                const isPos = stock.changePct >= 0;
-                const col = isPos ? 'text-ios-red' : 'text-ios-green';
-
-                const div = document.createElement('div');
-                div.className = "bg-ios-card hover:bg-ios-cardSecondary border border-ios-border p-3.5 rounded-2xl flex justify-between items-center cursor-pointer";
-                div.onclick = () => openStockSheet(stock);
-                div.innerHTML = `
-                    <div>
-                        <div class="font-bold text-sm text-white">${stock.name}</div>
-                        <div class="text-xs text-ios-gray font-mono">${stock.symbol}.TW</div>
-                    </div>
-                    <div class="text-right flex items-center space-x-3">
-                        <div>
-                            <div class="font-bold text-sm ${col}">${stock.price}</div>
-                            <div class="text-[10px] ${col}">${isPos ? '+' : ''}${stock.changePct}%</div>
-                        </div>
-                        <div class="text-xs font-bold text-ios-yellow bg-ios-yellow/10 px-2 py-1 rounded-lg">
-                            ${stock.turnover} 億
-                        </div>
-                        <button onclick="event.stopPropagation(); toggleWatchlist('${stock.symbol}')" class="text-ios-yellow p-1 hover:text-white">
-                            ★
-                        </button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        // ==================== STREAMING_CHUNK: Technical Strategy Screener Logic ====================
-
-        function applyStrategy(stratKey) {
-            ['breakout', 'dip', 'top_surge'].forEach(k => {
-                const btn = document.getElementById(`strat-btn-${k}`);
-                if(k === stratKey) {
-                    btn.className = "p-3 bg-ios-card border border-ios-blue text-left rounded-xl shadow";
-                } else {
-                    btn.className = "p-3 bg-ios-card border border-ios-border/60 text-left rounded-xl opacity-70 hover:opacity-100";
-                }
-            });
-
-            let filtered = [];
-            let btWin = '65.0%';
-            let btRet = '+12.5%';
-            let btMdd = '-4.8%';
-
-            if(stratKey === 'breakout') {
-                filtered = TODAY_STOCKS.filter(s => s.changePct > 1.5 && s.turnover > 80);
-                btWin = '71.2%';
-                btRet = '+16.8%';
-                btMdd = '-5.4%';
-            } else if(stratKey === 'dip') {
-                filtered = TODAY_STOCKS.filter(s => s.changePct < 0 && s.price > 200);
-                btWin = '64.5%';
-                btRet = '+11.2%';
-                btMdd = '-3.9%';
-            } else if(stratKey === 'top_surge') {
-                filtered = TODAY_STOCKS.filter(s => s.turnover >= 100);
-                btWin = '69.8%';
-                btRet = '+15.1%';
-                btMdd = '-6.2%';
-            }
-
-            document.getElementById('strategy-match-count').innerText = `符合 ${filtered.length} 檔`;
-            document.getElementById('bt-winrate').innerText = btWin;
-            document.getElementById('bt-return').innerText = btRet;
-            document.getElementById('bt-mdd').innerText = btMdd;
-
-            const resBox = document.getElementById('strategy-results-list');
-            resBox.innerHTML = filtered.map(s => `
-                <div onclick="openStockSheet(TODAY_STOCKS.find(x=>x.symbol==='${s.symbol}'))" class="bg-ios-card p-3 rounded-xl border border-ios-border flex justify-between items-center cursor-pointer hover:bg-ios-cardSecondary">
-                    <div>
-                        <span class="font-bold text-sm text-white">${s.name} (${s.symbol})</span>
-                        <div class="text-[11px] text-ios-gray mt-0.5">${s.maSignal}</div>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-xs font-extrabold text-ios-yellow bg-ios-yellow/10 px-2 py-0.5 rounded">
-                            ${s.turnover} 億元
-                        </span>
-                        <div class="text-xs font-bold ${s.changePct >= 0 ? 'text-ios-red' : 'text-ios-green'} mt-1">
-                            ${s.price} (${s.changePct >= 0 ? '+' : ''}${s.changePct}%)
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // ==================== STREAMING_CHUNK: Stock Detail Sheet & HTML5 K-Line Canvas Renderer ====================
-
-        function openStockSheet(stock) {
-            activeStock = stock;
-            document.getElementById('sheet-stock-name').innerText = stock.name;
-            document.getElementById('sheet-stock-symbol').innerText = `${stock.symbol}.TW`;
-            document.getElementById('sheet-stock-price').innerText = stock.price.toFixed(1);
-            
-            const isPos = stock.changePct >= 0;
-            const chgBox = document.getElementById('sheet-stock-change');
-            chgBox.innerText = `${isPos ? '+' : ''}${stock.change.toFixed(1)} (${isPos ? '+' : ''}${stock.changePct.toFixed(2)}%)`;
-            chgBox.className = `text-xs font-bold ${isPos ? 'text-ios-red bg-ios-red/10' : 'text-ios-green bg-ios-green/10'} px-2 py-0.5 rounded-md`;
-
-            document.getElementById('sheet-turnover-val').innerText = `${stock.turnover.toFixed(1)} 億元`;
-            document.getElementById('sheet-volume-val').innerText = `${stock.volume.toLocaleString()} 張`;
-            document.getElementById('sheet-high-low').innerText = `${stock.high} / ${stock.low}`;
-            document.getElementById('sheet-open-price').innerText = stock.open;
-            document.getElementById('sheet-ma-signal').innerText = stock.maSignal;
-
-            updateSheetWatchlistBtn();
-
-            // Show Sheet Animation
-            const sheet = document.getElementById('stock-sheet');
-            const content = document.getElementById('sheet-content');
-            sheet.classList.remove('hidden');
-            setTimeout(() => {
-                content.classList.remove('translate-y-full');
-                renderKLineChart();
-            }, 10);
-        }
-
-        function closeStockSheet() {
-            const content = document.getElementById('sheet-content');
-            content.classList.add('translate-y-full');
-            setTimeout(() => {
-                document.getElementById('stock-sheet').classList.add('hidden');
-            }, 300);
-        }
-
-        function updateSheetWatchlistBtn() {
-            const btn = document.getElementById('sheet-btn-watchlist');
-            if(watchlist.includes(activeStock.symbol)) {
-                btn.className = "p-2 rounded-full bg-ios-yellow/20 text-ios-yellow transition";
-            } else {
-                btn.className = "p-2 rounded-full bg-ios-cardSecondary text-ios-gray hover:text-ios-yellow transition";
-            }
-        }
-
-        function toggleWatchlistFromSheet() {
-            toggleWatchlist(activeStock.symbol);
-        }
-
-        function setChartPeriod(p) {
-            chartPeriod = p;
-            ['D', 'W', 'M'].forEach(k => {
-                document.getElementById(`btn-period-${k}`).className = (k === p) 
-                    ? "px-3 py-1 rounded-lg bg-ios-blue text-white font-medium"
-                    : "px-3 py-1 rounded-lg text-ios-gray hover:text-white font-medium";
-            });
-            renderKLineChart();
-        }
-
-        // Generate Candlestick Data and Moving Averages
-        function generateKData(basePrice) {
-            const count = 40;
-            const data = [];
-            let price = basePrice * 0.88;
-
-            for(let i = 0; i < count; i++) {
-                const change = (Math.random() - 0.48) * (basePrice * 0.03);
-                const open = price;
-                const close = open + change;
-                const high = Math.max(open, close) + Math.random() * (basePrice * 0.015);
-                const low = Math.min(open, close) - Math.random() * (basePrice * 0.015);
-                const vol = Math.floor(10000 + Math.random() * 50000);
-
-                data.push({ open, close, high, low, vol });
-                price = close;
-            }
-            // Ensure last price matches current
-            data[count - 1].close = activeStock.price;
-            data[count - 1].high = Math.max(data[count - 1].high, activeStock.price);
-
-            // Compute Moving Averages
-            const calcMA = (period) => {
-                return data.map((d, i) => {
-                    if(i < period - 1) return null;
-                    const slice = data.slice(i - period + 1, i + 1);
-                    const sum = slice.reduce((acc, curr) => acc + curr.close, 0);
-                    return sum / period;
-                });
-            };
-
-            return {
-                ohlc: data,
-                ma5: calcMA(5),
-                ma10: calcMA(10),
-                ma60: calcMA(20) // Simulated 60MA on short array
-            };
-        }
-
-        function renderKLineChart() {
-            const canvas = document.getElementById('kline-canvas');
-            if(!canvas) return;
-            const ctx = canvas.getContext('2d');
-            const dpr = window.devicePixelRatio || 1;
-
-            const width = canvas.parentElement.clientWidth;
-            const height = canvas.parentElement.clientHeight;
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
-            ctx.scale(dpr, dpr);
-
-            ctx.clearRect(0, 0, width, height);
-
-            const series = generateKData(activeStock.price);
-            const ohlc = series.ohlc;
-            const n = ohlc.length;
-
-            // Price Min/Max
-            let minP = Math.min(...ohlc.map(d => d.low));
-            let maxP = Math.max(...ohlc.map(d => d.high));
-            const pPadding = (maxP - minP) * 0.1 || 1;
-            minP -= pPadding;
-            maxP += pPadding;
-
-            const maxVol = Math.max(...ohlc.map(d => d.vol));
-
-            const topHeight = height * 0.7;
-            const botHeight = height * 0.25;
-            const botTop = height * 0.75;
-
-            const barWidth = (width - 20) / n;
-
-            // Draw Background Grid Lines
-            ctx.strokeStyle = '#2c2c2e';
-            ctx.lineWidth = 0.5;
-            for(let i = 1; i <= 3; i++) {
-                const y = (topHeight / 4) * i;
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(width, y);
-                ctx.stroke();
-            }
-
-            // Draw Candlesticks & Volume Bars
-            ohlc.forEach((d, i) => {
-                const x = 10 + i * barWidth + barWidth / 2;
-                const isRed = d.close >= d.open; // 台股 紅漲綠跌
-                const color = isRed ? '#ff453a' : '#30d158';
-
-                // Price to Y coordinate
-                const getY = (p) => topHeight - ((p - minP) / (maxP - minP)) * topHeight;
-
-                const openY = getY(d.open);
-                const closeY = getY(d.close);
-                const highY = getY(d.high);
-                const lowY = getY(d.low);
-
-                // High-Low Wick Line
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1.2;
-                ctx.beginPath();
-                ctx.moveTo(x, highY);
-                ctx.lineTo(x, lowY);
-                ctx.stroke();
-
-                // Open-Close Body
-                const bodyTop = Math.min(openY, closeY);
-                const bodyH = Math.max(Math.abs(closeY - openY), 1.5);
-                ctx.fillStyle = color;
-                ctx.fillRect(x - barWidth * 0.35, bodyTop, barWidth * 0.7, bodyH);
-
-                // Volume Bar at bottom
-                const vH = (d.vol / maxVol) * botHeight;
-                ctx.fillStyle = isRed ? 'rgba(255, 69, 58, 0.5)' : 'rgba(48, 209, 88, 0.5)';
-                ctx.fillRect(x - barWidth * 0.35, height - vH, barWidth * 0.7, vH);
-            });
-
-            // Helper to draw MA curve
-            const drawMA = (maArray, color) => {
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                let started = false;
-
-                maArray.forEach((val, i) => {
-                    if(val === null) return;
-                    const x = 10 + i * barWidth + barWidth / 2;
-                    const y = topHeight - ((val - minP) / (maxP - minP)) * topHeight;
-                    if(!started) {
-                        ctx.moveTo(x, y);
-                        started = true;
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                });
-                ctx.stroke();
-            };
-
-            // Draw 5MA (Yellow), 10MA (Purple), 60MA (Blue)
-            drawMA(series.ma5, '#ffd60a');
-            drawMA(series.ma10, '#bf5af2');
-            drawMA(series.ma60, '#0a84ff');
-        }
-
-        function initCanvasResize() {
-            window.addEventListener('resize', () => {
-                if(!document.getElementById('stock-sheet').classList.contains('hidden')) {
-                    renderKLineChart();
-                }
-            });
-        }
-
-        // ==================== STREAMING_CHUNK: API Explanation Modal Controls ====================
-
-        function openApiModal() {
-            document.getElementById('api-modal').classList.remove('hidden');
-        }
-
-        function closeApiModal() {
-            document.getElementById('api-modal').classList.add('hidden');
-        }
-
-        function copyApiCode() {
-            const code = document.getElementById('api-code-snippet').innerText;
-            const textarea = document.createElement('textarea');
-            textarea.value = code;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-
-            // Toast feedback
-            const btn = event.target;
-            btn.innerText = '已複製代碼！';
-            setTimeout(() => btn.innerText = '複製代碼', 2000);
-        }
-    </script>
+<div id="api-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="資料設定"><div class="bg-ios-card w-full max-w-lg rounded-2xl border border-ios-border p-5 space-y-4"><h3 class="text-lg font-bold">資料設定</h3><p class="text-sm text-ios-gray leading-relaxed">今日排行解析 Yahoo 股市頁面的實際榜單。前一交易日使用證交所與櫃買中心的完整盤後清單；來源、日期與更新時間會顯示在榜單。個股 K 線使用 Yahoo OHLCV。</p><label class="block text-sm" for="api-base">Worker 網址</label><input id="api-base" type="url" placeholder="留空使用此網站內建 API" class="w-full bg-black border border-ios-border p-3 rounded-xl text-sm"><p class="text-sm text-ios-gray">若使用你原本的網址，需先部署隨附的新版 stock-worker.js，才有排行功能。自選股與設定只儲存在這台裝置。</p><div class="flex gap-2"><button onclick="saveAPI()" class="flex-1 p-3 rounded-xl bg-ios-blue">儲存並重新載入</button><button onclick="closeApiModal()" class="p-3 rounded-xl bg-ios-cardSecondary">關閉</button></div></div></div>
+<script>'use strict';
+const $=id=>document.getElementById(id);
+const fmt=(v,d=2)=>Number.isFinite(v)?v.toLocaleString('zh-TW',{maximumFractionDigits:d}):'—';
+const signed=(v,d=2)=>Number.isFinite(v)?(v>0?'+':'')+fmt(v,d):'—';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const color=v=>v>0?'text-ios-red':v<0?'text-ios-green':'text-ios-gray';
+const colors={5:'#ffd60a',10:'#bf5af2',20:'#ff9f0a',60:'#0a84ff',120:'#64d2ff'};
+let selectedMA=new Set([5,10,60]),currentDayTab='today',activeTab='top-turnover',activeStock=null,chartPeriod='D',rankData=null,chartData=[],chartOffset=0,rankTicket=0,chartTicket=0,strategyTicket=0,strategy='breakout';
+function readStored(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}}
+let watchlist=readStored('tw_volume_watchlist',[]);if(!Array.isArray(watchlist))watchlist=[];
+let apiBase='https://stock-proxy.jeff8246532.workers.dev/';try{apiBase=localStorage.getItem('tw_volume_api')||apiBase;}catch{}
+const historyCache=new Map();
+async function api(params){
+ const u=apiBase?new URL(apiBase):location.protocol==='file:'?new URL('https://stock-proxy.jeff8246532.workers.dev/'):new URL('/api',location.href);Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+ const res=await fetch(u,{signal:AbortSignal.timeout(60000)});let d;try{d=await res.json();}catch{throw Error('API 沒有回傳 JSON，請檢查 Worker 網址');}
+ if(!res.ok||d.error)throw Error(d.error||'行情讀取失敗');return d;
+}
+async function getHistory(symbol){
+ const old=historyCache.get(symbol);if(old&&Date.now()-old.time<300000)return old.promise;
+ const promise=api({action:'chart',symbol,range:'10y',interval:'1d'}).then(d=>{
+  const r=d.chart?.result?.[0];if(!r)throw Error('API 未回傳 Yahoo K 線資料');const q=r.indicators?.quote?.[0];if(!q)throw Error('沒有 OHLCV 資料');
+  const data=(r.timestamp||[]).map((ts,i)=>({date:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ts*1000)),open:q.open[i],high:q.high[i],low:q.low[i],close:q.close[i],volume:q.volume[i]})).filter(x=>[x.open,x.high,x.low,x.close].every(Number.isFinite)).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!data.length)throw Error('沒有有效 K 線');return {data,meta:r.meta,events:r.events};
+ }).catch(e=>{historyCache.delete(symbol);throw e;});historyCache.set(symbol,{time:Date.now(),promise});return promise;
+}
+function sma(data,n,key='close'){
+ let sum=0,invalid=0;return data.map((v,i)=>{if(Number.isFinite(v[key]))sum+=v[key];else invalid++;if(i>=n){const p=data[i-n][key];if(Number.isFinite(p))sum-=p;else invalid--;}return i>=n-1&&invalid===0?sum/n:null;});
+}
+function aggregate(data,period){
+ if(period==='D')return data.map(d=>({...d}));const groups=new Map();
+ for(const d of data){let key=d.date.slice(0,7);if(period==='W'){const t=new Date(d.date+'T12:00:00Z');t.setUTCDate(t.getUTCDate()-((t.getUTCDay()+6)%7));key=t.toISOString().slice(0,10);}
+  const old=groups.get(key);if(old){old.high=Math.max(old.high,d.high);old.low=Math.min(old.low,d.low);old.close=d.close;old.endDate=d.date;old.volume=Number.isFinite(old.volume)&&Number.isFinite(d.volume)?old.volume+d.volume:null;}else groups.set(key,{...d,endDate:d.date});}
+ return [...groups.values()];
+}
+function metrics(data){
+ const i=data.length-1,last=data[i],previous=data[i-1];if(!last)return null;
+ const ma5=sma(data,5),ma10=sma(data,10),ma60=sma(data,60);const preceding=data.slice(Math.max(0,i-5),i);
+ const avg=preceding.length===5&&preceding.every(d=>Number.isFinite(d.volume))?preceding.reduce((a,d)=>a+d.volume,0)/5:null;
+ const ratio=avg>0&&Number.isFinite(last.volume)?last.volume/avg:null;
+ return {last,ma5:ma5[i],ma10:ma10[i],ma60:ma60[i],ratio,
+ breakout:!!previous&&ma5[i]!==null&&ma5[i-1]!==null&&previous.close<=ma5[i-1]&&last.close>ma5[i]&&ratio>=1.5,
+ dip:ma60[i]!==null&&Math.abs(last.close/ma60[i]-1)<=.03&&ratio!==null&&ratio<.8,
+ bearish:!!previous&&ma5[i]!==null&&ma5[i-1]!==null&&previous.close>=ma5[i-1]&&last.close<ma5[i]&&ratio>=1.5,
+ trend:ma5[i]!==null&&ma10[i]!==null&&ma60[i]!==null?(last.close>ma5[i]&&ma5[i]>ma10[i]&&ma10[i]>ma60[i]?'價格 > 5MA > 10MA > 60MA':last.close<ma5[i]&&ma5[i]<ma10[i]&&ma10[i]<ma60[i]?'價格 < 5MA < 10MA < 60MA':'均線未呈現一致排列'):'歷史資料不足，部分均線不可計算'};
+}
+function card(s,index){
+ const el=document.createElement('button');el.type='button';el.className='w-full text-left bg-ios-card hover:bg-ios-cardSecondary border border-ios-border/60 rounded-2xl p-3.5 grid grid-cols-12 items-center cursor-pointer transition';el.onclick=()=>openStockSheet(s);
+ el.innerHTML=`<div class="col-span-1 text-center font-bold ${index<3?'text-ios-yellow':'text-ios-gray'}">${index+1}</div><div class="col-span-4 pl-1"><div class="font-bold text-sm text-white">${esc(s.name)}</div><div class="text-xs text-ios-gray mt-1">${esc(s.symbol)} · ${esc(s.market||'')}</div></div><div class="col-span-3 text-right"><div class="font-bold text-sm ${color(s.change)}">${fmt(s.price)}</div><div class="text-xs ${color(s.change)}">${signed(s.changePct)}%</div></div><div class="col-span-4 text-right"><div class="text-sm font-bold text-ios-yellow">${fmt(s.volume/1000,0)} 張</div><div class="text-xs text-ios-gray mt-1">${fmt(s.turnover/1e8)} 億</div></div>`;return el;
+}
+function renderRankList(){const box=$('stock-rank-list');box.replaceChildren();rankData?.stocks.forEach((s,i)=>box.appendChild(card(s,i)));}
+async function loadRank(force=false){
+ const ticket=++rankTicket;++strategyTicket;rankData=null;$('rank-status').textContent='讀取 '+(currentDayTab==='today'?'Yahoo 最新成交排行…':'前一交易日完整排行（假日會往前查找）…');$('rank-summary').replaceChildren();$('stock-rank-list').replaceChildren();$('rank-total').textContent='—';$('last-update-time').textContent='—';
+ try{const d=await api({action:'rank',day:currentDayTab==='today'?'today':'previous',sort:$('rank-sort').value,etf:$('include-etf').checked?'1':'0',...(force?{refresh:Date.now()}:{})});if(ticket!==rankTicket)return;
+  if(!Array.isArray(d.stocks)||d.stocks.length!==20)throw Error('目前 Worker 尚未支援排行，請先部署新版 stock-worker.js');rankData=d;renderRankList();
+  $('rank-status').textContent=`${d.date} · ${d.source} · ${d.scope}。${d.status}${d.date!==d.taipeiToday&&currentDayTab==='today'?'；今日尚無新榜，顯示最近交易日':''}。`;
+  $('last-update-time').textContent=d.updatedAt?d.updatedAt.slice(11,19):'盤後資料';const total=d.stocks.reduce((a,s)=>a+(s.turnover||0),0);$('rank-total').textContent=fmt(total/1e8)+' 億';
+  const up=d.stocks.filter(s=>s.change>0).length,down=d.stocks.filter(s=>s.change<0).length;const concentration=total>0?Math.max(...d.stocks.map(s=>s.turnover||0))/total*100:null;
+  $('rank-summary').innerHTML=[['上漲／下跌',`${up} / ${down}`],['本榜總張數',fmt(d.stocks.reduce((a,s)=>a+s.volume,0)/1000,0)],['最大成交額占本榜',fmt(concentration,1)+'%']].map(([a,b])=>`<div class="bg-ios-card rounded-xl p-3 border border-ios-border"><div class="text-xs text-ios-gray">${a}</div><div class="text-sm font-bold mt-1">${b}</div></div>`).join('');
+  if(activeTab==='watchlist')renderWatchlist();if(activeTab==='strategies')applyStrategy(strategy);
+ }catch(e){if(ticket!==rankTicket)return;$('rank-status').textContent=e.message+'。可按重新整理重試，或至資料設定更換 Worker。';}
+}
+function switchDay(day){currentDayTab=day;for(const x of ['today','yesterday'])$('toggle-'+x).className='flex-1 py-2 rounded-lg '+(x===day?'bg-ios-blue text-white':'text-ios-gray');loadRank();}
+function switchTab(tab){activeTab=tab;for(const t of ['top-turnover','watchlist','strategies']){$('tab-'+t).classList.toggle('hidden',t!==tab);$('nav-'+t).className='flex flex-col items-center '+(t===tab?'text-ios-blue':'text-ios-gray');}if(tab==='watchlist')renderWatchlist();if(tab==='strategies')applyStrategy(strategy);}
+function onSearchInput(query){
+ const box=$('search-suggestions');box.replaceChildren();if(!query.trim()){box.classList.add('hidden');return;}const q=query.trim();const matches=(rankData?.stocks||[]).filter(s=>s.code.includes(q)||s.name.includes(q)||s.symbol.toLowerCase()===q.toLowerCase());
+ for(const s of matches){const b=document.createElement('button');b.className='block w-full text-left p-3 hover:bg-ios-card';b.textContent=s.name+' '+s.symbol;b.onclick=()=>selectSearchStock(s);box.appendChild(b);}
+ if(/^(\d{4,6}[A-Z]?)(\.TW(O)?)?$/i.test(q)&&!matches.length){const symbol=q.toUpperCase().includes('.')?q.toUpperCase():q.toUpperCase()+'.TW';const b=document.createElement('button');b.className='block w-full text-left p-3 text-ios-blue';b.textContent='查詢 '+symbol+'（上櫃請輸入 .TWO）';b.onclick=()=>selectSearchStock({symbol,code:symbol.split('.')[0],name:symbol});box.appendChild(b);}
+ if(!box.children.length){const p=document.createElement('p');p.className='p-3 text-sm text-ios-gray';p.textContent='名称搜尋限本次榜單；其他個股請輸入代碼。';box.appendChild(p);}box.classList.remove('hidden');
+}
+function selectSearchStock(s){$('search-suggestions').classList.add('hidden');$('search-input').value='';openStockSheet(s);}
+function persistWatchlist(){try{localStorage.setItem('tw_volume_watchlist',JSON.stringify(watchlist));}catch{}}
+function toggleWatchlist(symbol){const s=activeStock?.symbol===symbol?activeStock:rankData?.stocks.find(s=>s.symbol===symbol);const i=watchlist.findIndex(x=>x.symbol===symbol);if(i>=0)watchlist.splice(i,1);else if(s)watchlist.push({symbol:s.symbol,code:s.code,name:s.name});persistWatchlist();updateSheetWatchlistBtn();renderWatchlist();}
+function toggleWatchlistFromSheet(){if(activeStock)toggleWatchlist(activeStock.symbol);}
+function updateSheetWatchlistBtn(){if(activeStock){$('sheet-btn-watchlist').className='p-2 rounded-full bg-ios-cardSecondary '+(watchlist.some(s=>s.symbol===activeStock.symbol)?'text-ios-yellow':'text-ios-gray');$('sheet-btn-watchlist').setAttribute('aria-label',watchlist.some(s=>s.symbol===activeStock.symbol)?'移除自選股':'加入自選股');}}
+async function renderWatchlist(){
+ const box=$('watchlist-items');box.replaceChildren();$('watchlist-count').textContent=watchlist.length;if(!watchlist.length){box.innerHTML='<p class="text-sm text-ios-gray p-4">開啟個股後，點星號加入自選股。</p>';return;}
+ for(const w of watchlist){const current=rankData?.stocks.find(s=>s.symbol===w.symbol);const row=document.createElement('div');row.className='flex gap-2 items-center';const b=document.createElement('button');b.className='flex-1 bg-ios-card p-4 rounded-xl text-left';b.textContent=w.name+' '+w.symbol+(current?' · '+fmt(current.price):' · 查看行情');b.onclick=()=>openStockSheet(current||w);const del=document.createElement('button');del.textContent='移除';del.className='p-3 text-ios-gray';del.onclick=()=>{watchlist=watchlist.filter(x=>x.symbol!==w.symbol);persistWatchlist();renderWatchlist();};row.append(b,del);box.appendChild(row);}
+}
+async function applyStrategy(key){
+ strategy=key;const ticket=++strategyTicket;for(const k of ['breakout','dip','top_surge'])$('strat-btn-'+k).classList.toggle('border-ios-blue',k===key);
+ const box=$('strategy-results-list');box.replaceChildren();if(!rankData){$('strategy-match-count').textContent='請先取得排行';return;}
+ $('strategy-match-count').textContent=key==='top_surge'?'計算中…':'讀取前 20 檔日線…';const stocks=rankData.stocks,cutoff=rankData.date;let results=[],failed=0;
+ if(key==='top_surge')results=stocks.filter(s=>s.turnover>=100e8).map(s=>({s,label:'成交金額 '+fmt(s.turnover/1e8)+' 億元'}));
+ else {let next=0;await Promise.all(Array.from({length:3},async()=>{while(next<stocks.length){const s=stocks[next++];if(ticket!==strategyTicket)return;try{const h=await getHistory(s.symbol);const data=h.data.filter(d=>d.date<=cutoff);if(data.at(-1)?.date!==cutoff){failed++;continue;}const m=metrics(data);if(m&&(key==='breakout'?m.breakout:m.dip))results.push({s,label:'日線 '+m.trend+' · 量比 '+fmt(m.ratio)});}catch{failed++;}}}));}
+ if(ticket!==strategyTicket)return;$('strategy-match-count').textContent=`符合 ${results.length} 檔${failed?' · '+failed+' 檔資料不足或讀取失敗':''}`;
+ for(const {s,label} of results){const row=document.createElement('div');row.appendChild(card(s,stocks.indexOf(s)));const p=document.createElement('p');p.className='text-sm text-ios-gray px-3 py-2';p.textContent=label;row.appendChild(p);box.appendChild(row);}if(!results.length)box.innerHTML='<p class="text-sm text-ios-gray p-4">已取得的資料中沒有符合條件的股票。</p>';
+}
+let focusBeforeSheet=null;
+async function openStockSheet(stock){
+ activeStock={...stock};focusBeforeSheet=document.activeElement;const ticket=++chartTicket;chartData=[];chartOffset=0;chartPeriod='D';
+ $('sheet-stock-name').textContent=stock.name;$('sheet-stock-symbol').textContent=stock.symbol;populateStock(stock);$('sheet-ma-signal').textContent='讀取日線…';$('sheet-volume-signal').textContent='';$('stock-sheet').classList.remove('hidden');$('stock-sheet').setAttribute('role','dialog');$('stock-sheet').setAttribute('aria-modal','true');$('stock-sheet').setAttribute('aria-label','個股線圖');$('sheet-content').classList.remove('translate-y-full');$('chart-status').textContent='讀取 Yahoo 10 年日線，準備日／週／月 K 與均線…';updateSheetWatchlistBtn();$('sheet-btn-watchlist').focus();setChartPeriod('D');
+ try{const h=await getHistory(stock.symbol);if(ticket!==chartTicket)return;const cutoff=stock.date||rankData?.date||new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei'}).format(new Date());chartData=h.data.filter(d=>d.date<=cutoff);if(!chartData.length)throw Error('此日期之前沒有有效行情');const last=chartData.at(-1),prev=chartData.at(-2);
+  if(!stock.date){activeStock={...stock,date:last.date,price:last.close,open:last.open,high:last.high,low:last.low,volume:last.volume,change:prev?last.close-prev.close:null,changePct:prev?100*(last.close/prev.close-1):null,turnover:null};populateStock(activeStock);}
+  $('chart-status').textContent=`Yahoo OHLCV · ${chartData[0].date}～${last.date} · ${chartData.length} 根日 K${last.date!==cutoff?'；尚未提供 '+cutoff+' 日 K，指標以最近有效日為準':''}。週／月由日 K 合併，末根可能未完成；均線採原始收盤價，除權息可能造成價格跳空。`;
+  renderKLineChart();const m=metrics(chartData);$('sheet-ma-signal').textContent=m.trend+(m.breakout?' · 突破 5MA 放量':m.bearish?' · 跌破 5MA 放量':m.dip?' · 季線附近量縮':'');$('sheet-volume-signal').textContent='日量比 '+fmt(m.ratio)+'×（前 5 日）';
+ }catch(e){if(ticket!==chartTicket)return;$('chart-status').textContent=e.message+'。關閉後可再開啟重試。';$('sheet-ma-signal').textContent='沒有可用指標';}
+}
+function populateStock(s){$('sheet-stock-price').textContent=fmt(s.price);$('sheet-stock-price').className='text-2xl font-extrabold '+color(s.change);$('sheet-stock-change').textContent=s.change==null?'—':signed(s.change)+' ('+signed(s.changePct)+'%)';$('sheet-stock-change').className='text-sm font-bold '+color(s.change);$('sheet-turnover-val').textContent=s.turnover==null?'未提供實際成交額':fmt(s.turnover/1e8)+' 億元';$('sheet-volume-val').textContent=s.volume==null?'—':fmt(s.volume/1000,0)+' 張';$('sheet-high-low').textContent=fmt(s.high)+' / '+fmt(s.low);$('sheet-open-price').textContent=fmt(s.open);}
+function closeStockSheet(){++chartTicket;$('stock-sheet').classList.add('hidden');$('sheet-content').classList.add('translate-y-full');$('chart-tooltip').classList.add('hidden');focusBeforeSheet?.focus();}
+function setChartPeriod(p){chartPeriod=p;chartOffset=0;for(const k of ['D','W','M'])$('btn-period-'+k).className='px-3 py-2 rounded-lg '+(k===p?'bg-ios-blue text-white':'text-ios-gray');renderKLineChart();}
+function shiftChart(dir){const total=aggregate(chartData,chartPeriod).length;chartOffset=Math.min(Math.max(0,total-Number($('visible-bars').value)),Math.max(0,chartOffset-dir*30));renderKLineChart();}
+function renderMAControls(){const box=$('ma-controls');box.replaceChildren();for(const n of [5,10,20,60,120]){const label=document.createElement('label');label.className='flex gap-1 items-center cursor-pointer';label.style.color=colors[n];const cb=document.createElement('input');cb.type='checkbox';cb.checked=selectedMA.has(n);cb.onchange=()=>{cb.checked?selectedMA.add(n):selectedMA.delete(n);renderKLineChart();};label.append(cb,document.createTextNode(n+'MA'));box.appendChild(label);}}
+let canvasModel=null;
+function renderKLineChart(){
+ const canvas=$('kline-canvas'),ctx=canvas.getContext('2d');const w=canvas.clientWidth||700,h=390,dpr=window.devicePixelRatio||1;canvas.width=w*dpr;canvas.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.fillStyle='#999';ctx.font='12px -apple-system, sans-serif';canvasModel=null;
+ if(!chartData.length){ctx.fillText('等待行情資料',20,40);return;}const full=aggregate(chartData,chartPeriod),count=Number($('visible-bars').value);chartOffset=Math.min(chartOffset,Math.max(0,full.length-count));const end=full.length-chartOffset,start=Math.max(0,end-count),data=full.slice(start,end),mas={};for(const n of selectedMA)mas[n]=sma(full,n).slice(start,end);
+ const left=9,right=62,top=24,priceBottom=254,volTop=286,volBottom=356,plotW=w-left-right,dx=plotW/data.length;
+ let prices=data.flatMap(d=>[d.high,d.low]);for(const values of Object.values(mas))prices.push(...values.filter(Number.isFinite));let min=Math.min(...prices),max=Math.max(...prices),pad=(max-min)*.07||max*.02||1;min-=pad;max+=pad;const y=v=>priceBottom-(v-min)/(max-min)*(priceBottom-top);const maxVolume=Math.max(1,...data.map(d=>d.volume||0));
+ ctx.strokeStyle='#28282a';ctx.fillStyle='#8e8e93';for(let i=0;i<5;i++){const v=min+(max-min)*i/4,py=y(v);ctx.beginPath();ctx.moveTo(left,py);ctx.lineTo(w-right,py);ctx.stroke();ctx.fillText(fmt(v),w-right+5,py+4);}
+ for(let i=0;i<data.length;i++){const d=data[i],x=left+(i+.5)*dx,c=d.close>=d.open?'#ff453a':'#30d158';ctx.strokeStyle=c;ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(x,y(d.high));ctx.lineTo(x,y(d.low));ctx.stroke();ctx.fillRect(x-Math.max(1,dx*.65)/2,Math.min(y(d.open),y(d.close)),Math.max(1,dx*.65),Math.max(1,Math.abs(y(d.close)-y(d.open))));if(Number.isFinite(d.volume))ctx.fillRect(x-dx*.65/2,volBottom-d.volume/maxVolume*(volBottom-volTop),Math.max(1,dx*.65),d.volume/maxVolume*(volBottom-volTop));}
+ for(const [n,values] of Object.entries(mas)){ctx.strokeStyle=colors[n];ctx.lineWidth=1.5;ctx.beginPath();let on=false;values.forEach((v,i)=>{if(v===null){on=false;return;}const x=left+(i+.5)*dx;if(!on){ctx.moveTo(x,y(v));on=true;}else ctx.lineTo(x,y(v));});ctx.stroke();}ctx.lineWidth=1;
+ ctx.fillStyle='#8e8e93';ctx.fillText('成交量（張）',left,volTop-8);ctx.fillText(fmt(maxVolume/1000,0),w-right+5,volTop+8);const ticks=[0,Math.floor((data.length-1)/2),data.length-1];for(const i of ticks){ctx.textAlign=i===data.length-1?'right':i===0?'left':'center';ctx.fillText(data[i].date,left+(i+.5)*dx,380);}ctx.textAlign='left';
+ const unit={D:'日',W:'週',M:'月'}[chartPeriod];const latest=data.at(-1);$('chart-tooltip').classList.add('hidden');ctx.fillStyle='#ddd';ctx.fillText(`${unit} K · ${latest.endDate||latest.date}`,left,14);
+ canvasModel={data,mas,left,dx,w,h,unit};
+ const absent=[...selectedMA].filter(n=>full.length<n);if(absent.length){ctx.fillStyle='#8e8e93';ctx.fillText('資料不足：'+absent.map(n=>n+'MA').join(' / '),left,274);}
+}
+function chartPointer(e){const m=canvasModel;if(!m)return;const rect=$('kline-canvas').getBoundingClientRect(),x=e.clientX-rect.left;if(x<m.left||x>m.w-62)return;const i=Math.min(m.data.length-1,Math.max(0,Math.floor((x-m.left)/m.dx))),d=m.data[i];const tip=$('chart-tooltip');tip.innerHTML=`<div class="text-white">${esc(d.date)}${d.endDate&&d.endDate!==d.date?'～'+esc(d.endDate):''}</div>開 ${fmt(d.open)}　高 ${fmt(d.high)}<br>低 ${fmt(d.low)}　收 ${fmt(d.close)}<br>量 ${fmt(d.volume==null?null:d.volume/1000,0)} 張<br>`+[...selectedMA].map(n=>`<span style="color:${colors[n]}">${n}${m.unit} MA ${fmt(m.mas[n][i])}</span>`).join('　');tip.classList.remove('hidden');}
+function openApiModal(){$('api-base').value=apiBase;$('api-modal').classList.remove('hidden');$('api-base').focus();}
+function closeApiModal(){$('api-modal').classList.add('hidden');}
+function saveAPI(){const value=$('api-base').value.trim();try{if(value){const u=new URL(value);if(u.protocol!=='https:')throw Error();}}catch{$('api-base').setCustomValidity('請輸入完整 HTTPS Worker 網址');$('api-base').reportValidity();return;}$('api-base').setCustomValidity('');apiBase=value;try{localStorage.setItem('tw_volume_api',apiBase);}catch{}historyCache.clear();closeApiModal();loadRank();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeApiModal();if(!$('stock-sheet').classList.contains('hidden'))closeStockSheet();}if(e.key==='Tab'){const modal=!$('api-modal').classList.contains('hidden')?$('api-modal'):!$('stock-sheet').classList.contains('hidden')?$('stock-sheet'):null;if(modal){const nodes=[...modal.querySelectorAll('button,input,select')].filter(x=>x.offsetParent!==null);if(nodes.length){const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}}}});
+$('stock-sheet').addEventListener('click',e=>{if(e.target===$('stock-sheet'))closeStockSheet();});$('kline-canvas').addEventListener('pointermove',chartPointer);$('kline-canvas').addEventListener('pointerleave',()=>$('chart-tooltip').classList.add('hidden'));new ResizeObserver(()=>{if(!$('stock-sheet').classList.contains('hidden'))renderKLineChart();}).observe($('kline-canvas'));
+renderMAControls();renderWatchlist();loadRank();
+// Optional browser-native tools share the same visible UI actions.
+if(document.modelContext?.registerTool){
+ const lifecycle=new AbortController();
+ const tools=[
+  {name:'read_stock_ranking',description:'Read the ranking currently displayed, including its source and trading date.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute:()=>rankData?{date:rankData.date,source:rankData.source,sort:rankData.sort,stocks:rankData.stocks}:{error:'Ranking has not loaded'}},
+  {name:'open_stock_chart',description:'Open a Taiwan stock chart in the visible detail sheet; does not trade or change the watchlist.',inputSchema:{type:'object',properties:{symbol:{type:'string',pattern:'^[0-9]{4,6}[A-Z]?\\.TW(O)?$'}},required:['symbol'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:async input=>{if(!input||Object.keys(input).some(k=>k!=='symbol')||typeof input.symbol!=='string'||!/^\d{4,6}[A-Z]?\.TW(O)?$/.test(input.symbol))throw Error('Use a Taiwan symbol such as 2330.TW or 6488.TWO');await openStockSheet(rankData?.stocks.find(s=>s.symbol===input.symbol)||{symbol:input.symbol,code:input.symbol.split('.')[0],name:input.symbol});return {symbol:activeStock.symbol,bars:chartData.length,status:$('chart-status').textContent};}}
+ ];
+ for(const tool of tools){try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{}}
+ window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
+}
+</script>
 </body>
 </html>
