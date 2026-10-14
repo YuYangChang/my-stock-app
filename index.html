@@ -157,9 +157,9 @@
 
                 </div>
 
-                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                <h1 id="rank-heading" class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
 
-                    成交量熱門榜
+                    成交金額熱門榜
 
                     <span class="text-xs bg-ios-blue/20 text-ios-blue border border-ios-blue/30 px-2 py-0.5 rounded-full font-medium">Top 20</span>
 
@@ -233,7 +233,7 @@
 
 
 
-<div class="flex flex-wrap gap-2 items-center text-sm"><select id="rank-sort" onchange="loadRank()" aria-label="排行排序" class="bg-ios-cardSecondary border border-ios-border rounded-lg p-2"><option value="volume">成交量排序</option><option value="turnover">成交金額排序</option></select><label class="flex items-center gap-2"><input type="checkbox" id="include-etf" onchange="loadRank()">含 ETF</label><button onclick="loadRank(true)" class="ml-auto text-ios-blue p-2 rounded-lg bg-ios-card">重新整理</button></div><div id="rank-status" role="status" aria-live="polite" class="text-sm text-ios-gray leading-relaxed">讀取 Yahoo 排行中…</div><div id="rank-summary" class="grid grid-cols-3 gap-2"></div>
+<div class="flex flex-wrap gap-2 items-center text-sm"><select id="rank-sort" onchange="loadRank()" aria-label="排行排序" class="bg-ios-cardSecondary border border-ios-border rounded-lg p-2"><option value="turnover" selected>成交金額排序</option><option value="volume">成交量排序</option></select><label class="flex items-center gap-2"><input type="checkbox" id="include-etf" onchange="loadRank()">含 ETF</label><button onclick="loadRank(true)" class="ml-auto text-ios-blue p-2 rounded-lg bg-ios-card">重新整理</button></div><div id="rank-status" role="status" aria-live="polite" class="text-sm text-ios-gray leading-relaxed">讀取 Yahoo 排行中…</div><div id="rank-summary" class="grid grid-cols-3 gap-2"></div>
             <!-- Ranking List Table Header -->
 
             <div class="grid grid-cols-12 text-[11px] font-semibold text-ios-gray px-3 py-1">
@@ -244,7 +244,7 @@
 
                 <span class="col-span-3 text-right">成交價 / 漲跌</span>
 
-                <span class="col-span-4 text-right">成交量 (張) / 金額</span>
+                <span class="col-span-4 text-right"><span id="rank-column-label">成交金額 / 成交量</span></span>
 
             </div>
 
@@ -338,7 +338,7 @@
 
                 </h2>
 
-                <p class="text-xs text-ios-gray mt-1">針對所選熱門榜前 20 檔個股，計算量價與均線觀察條件。</p>
+                <p class="text-xs text-ios-gray mt-1">成交金額 Top 30 獨立解析季線與量價；其他策略沿用第一頁所選的前 20 檔。</p>
 
             </div>
 
@@ -346,8 +346,9 @@
 
             <!-- Strategy Selectors -->
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
 
+<button onclick="applyStrategy('quarter30')" id="strat-btn-quarter30" class="p-3 bg-ios-card border border-ios-blue text-left rounded-xl hover:bg-ios-cardSecondary"><div class="text-sm font-semibold text-ios-blue">成交金額 Top 30</div><div class="font-bold text-white mt-1">季線・量縮築底／反攻解析</div><div class="text-xs text-ios-gray mt-1">逐檔列出依據與尚未成立的條件</div></button>
                 <button onclick="applyStrategy('breakout')" id="strat-btn-breakout" class="p-3 bg-ios-card border border-ios-blue text-left rounded-xl hover:bg-ios-cardSecondary transition">
 
                     <div class="text-xs font-semibold text-ios-blue">🚀 強勢追價型</div>
@@ -386,6 +387,7 @@
 
 
 
+<div id="quarter-controls" class="space-y-3 bg-ios-card border border-ios-border p-4 rounded-xl"><p id="quarter-status" role="status" aria-live="polite" class="text-sm text-ios-gray">成交金額前 30 名（一般股票、不含 ETF），固定使用最新交易日。先看最近 10 日是否接近季線，再比較近 5 日均量與此前 20 日均量。</p><div class="flex flex-wrap gap-3 items-center text-sm"><label>季線附近 ± <input id="quarter-distance" type="number" min="1" max="10" step="0.5" value="5" onchange="reanalyzeQuarter()" class="w-16 bg-black p-2 rounded-lg border border-ios-border"> %</label><label>量縮比 ≤ <input id="quarter-volume" type="number" min="0.3" max="1" step="0.05" value="0.8" onchange="reanalyzeQuarter()" class="w-20 bg-black p-2 rounded-lg border border-ios-border"></label><label class="flex gap-2 items-center"><input type="checkbox" id="quarter-only" onchange="renderQuarterReport()">僅看築底／回穩／反攻候選</label><button onclick="loadQuarterAnalysis(true)" class="text-ios-blue p-2 ml-auto">重新分析</button></div><details class="text-sm text-ios-gray leading-relaxed"><summary class="cursor-pointer text-ios-blue">查看判讀規則</summary><p class="mt-2">季線＝60 日均線。季線附近：最近 10 個交易日收盤距當時季線在設定範圍內，或 K 線穿越季線。量縮比＝近 5 日均量／此前 20 日均量（兩區間不重疊）。築底候選還需先有至少 3% 回落、近 5 日高低區間 ≤8%、近 3 日低點未比前 7 日低點低逾 1%，且收盤靠近 5MA。反攻需此前量縮、收紅 K、站上 5MA、突破前一日最高價、當日量 ≥ 前 20 日均量 1.2 倍。季線跌破 3% 且連續 3 日走低者列偏弱。盤中只標暫估，不確認量縮或反攻；Yahoo 尚未提供當日日 K 時，不套用舊日訊號。</p></details></div><div id="quarter-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
             <!-- Strategy Results Box -->
 
             <div class="space-y-2">
@@ -629,7 +631,7 @@ const signed=(v,d=2)=>Number.isFinite(v)?(v>0?'+':'')+fmt(v,d):'—';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const color=v=>v>0?'text-ios-red':v<0?'text-ios-green':'text-ios-gray';
 const colors={5:'#ffd60a',10:'#bf5af2',20:'#ff9f0a',60:'#0a84ff',120:'#64d2ff'};
-let selectedMA=new Set([5,10,60]),currentDayTab='today',activeTab='top-turnover',activeStock=null,chartPeriod='D',rankData=null,chartData=[],chartOffset=0,rankTicket=0,chartTicket=0,strategyTicket=0,strategy='breakout';
+let selectedMA=new Set([5,10,60]),currentDayTab='today',activeTab='top-turnover',activeStock=null,chartPeriod='D',rankData=null,chartData=[],chartOffset=0,rankTicket=0,chartTicket=0,strategyTicket=0,strategy='quarter30';
 function readStored(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}}
 let watchlist=readStored('tw_volume_watchlist',[]);if(!Array.isArray(watchlist))watchlist=[];
 let apiBase='https://stock-proxy.jeff8246532.workers.dev/';try{apiBase=localStorage.getItem('tw_volume_api')||apiBase;}catch{}
@@ -668,12 +670,12 @@ function metrics(data){
  trend:ma5[i]!==null&&ma10[i]!==null&&ma60[i]!==null?(last.close>ma5[i]&&ma5[i]>ma10[i]&&ma10[i]>ma60[i]?'價格 > 5MA > 10MA > 60MA':last.close<ma5[i]&&ma5[i]<ma10[i]&&ma10[i]<ma60[i]?'價格 < 5MA < 10MA < 60MA':'均線未呈現一致排列'):'歷史資料不足，部分均線不可計算'};
 }
 function card(s,index){
- const el=document.createElement('button');el.type='button';el.className='w-full text-left bg-ios-card hover:bg-ios-cardSecondary border border-ios-border/60 rounded-2xl p-3.5 grid grid-cols-12 items-center cursor-pointer transition';el.onclick=()=>openStockSheet(s);
- el.innerHTML=`<div class="col-span-1 text-center font-bold ${index<3?'text-ios-yellow':'text-ios-gray'}">${index+1}</div><div class="col-span-4 pl-1"><div class="font-bold text-sm text-white">${esc(s.name)}</div><div class="text-xs text-ios-gray mt-1">${esc(s.symbol)} · ${esc(s.market||'')}</div></div><div class="col-span-3 text-right"><div class="font-bold text-sm ${color(s.change)}">${fmt(s.price)}</div><div class="text-xs ${color(s.change)}">${signed(s.changePct)}%</div></div><div class="col-span-4 text-right"><div class="text-sm font-bold text-ios-yellow">${fmt(s.volume/1000,0)} 張</div><div class="text-xs text-ios-gray mt-1">${fmt(s.turnover/1e8)} 億</div></div>`;return el;
+ const turnoverFirst=$('rank-sort').value==='turnover';const primary=turnoverFirst?fmt(s.turnover/1e8)+' 億':fmt(s.volume/1000,0)+' 張';const secondary=turnoverFirst?fmt(s.volume/1000,0)+' 張':fmt(s.turnover/1e8)+' 億';const el=document.createElement('button');el.type='button';el.className='w-full text-left bg-ios-card hover:bg-ios-cardSecondary border border-ios-border/60 rounded-2xl p-3.5 grid grid-cols-12 items-center cursor-pointer transition';el.onclick=()=>openStockSheet(s);
+ el.innerHTML=`<div class="col-span-1 text-center font-bold ${index<3?'text-ios-yellow':'text-ios-gray'}">${index+1}</div><div class="col-span-4 pl-1"><div class="font-bold text-sm text-white">${esc(s.name)}</div><div class="text-xs text-ios-gray mt-1">${esc(s.symbol)} · ${esc(s.market||'')}</div></div><div class="col-span-3 text-right"><div class="font-bold text-sm ${color(s.change)}">${fmt(s.price)}</div><div class="text-xs ${color(s.change)}">${signed(s.changePct)}%</div></div><div class="col-span-4 text-right"><div class="text-sm font-bold text-ios-yellow">${primary}</div><div class="text-xs text-ios-gray mt-1">${secondary}</div></div>`;return el;
 }
 function renderRankList(){const box=$('stock-rank-list');box.replaceChildren();rankData?.stocks.forEach((s,i)=>box.appendChild(card(s,i)));}
 async function loadRank(force=false){
- const ticket=++rankTicket;++strategyTicket;rankData=null;$('rank-status').textContent='讀取 '+(currentDayTab==='today'?'Yahoo 最新成交排行…':'前一交易日完整排行（假日會往前查找）…');$('rank-summary').replaceChildren();$('stock-rank-list').replaceChildren();$('rank-total').textContent='—';$('last-update-time').textContent='—';
+ const ticket=++rankTicket;if(strategy!=='quarter30')++strategyTicket;rankData=null;$('rank-heading').firstChild.textContent=$('rank-sort').value==='turnover'?'成交金額熱門榜 ':'成交量熱門榜 ';$('rank-column-label').textContent=$('rank-sort').value==='turnover'?'成交金額 / 成交量':'成交量 / 成交金額';$('rank-status').textContent='讀取 '+(currentDayTab==='today'?'Yahoo 最新成交排行…':'前一交易日完整排行（假日會往前查找）…');$('rank-summary').replaceChildren();$('stock-rank-list').replaceChildren();$('rank-total').textContent='—';$('last-update-time').textContent='—';
  try{const d=await api({action:'rank',day:currentDayTab==='today'?'today':'previous',sort:$('rank-sort').value,etf:$('include-etf').checked?'1':'0',...(force?{refresh:Date.now()}:{})});if(ticket!==rankTicket)return;
   if(!Array.isArray(d.stocks)||d.stocks.length!==20)throw Error('目前 Worker 尚未支援排行，請先部署新版 stock-worker.js');rankData=d;renderRankList();
   $('rank-status').textContent=`${d.date} · ${d.source} · ${d.scope}。${d.status}${d.date!==d.taipeiToday&&currentDayTab==='today'?'；今日尚無新榜，顯示最近交易日':''}。`;
@@ -701,7 +703,7 @@ async function renderWatchlist(){
  for(const w of watchlist){const current=rankData?.stocks.find(s=>s.symbol===w.symbol);const row=document.createElement('div');row.className='flex gap-2 items-center';const b=document.createElement('button');b.className='flex-1 bg-ios-card p-4 rounded-xl text-left';b.textContent=w.name+' '+w.symbol+(current?' · '+fmt(current.price):' · 查看行情');b.onclick=()=>openStockSheet(current||w);const del=document.createElement('button');del.textContent='移除';del.className='p-3 text-ios-gray';del.onclick=()=>{watchlist=watchlist.filter(x=>x.symbol!==w.symbol);persistWatchlist();renderWatchlist();};row.append(b,del);box.appendChild(row);}
 }
 async function applyStrategy(key){
- strategy=key;const ticket=++strategyTicket;for(const k of ['breakout','dip','top_surge'])$('strat-btn-'+k).classList.toggle('border-ios-blue',k===key);
+ strategy=key;$('quarter-controls').classList.toggle('hidden',key!=='quarter30');$('quarter-summary').classList.toggle('hidden',key!=='quarter30');if(key==='quarter30'){for(const k of ['breakout','dip','top_surge','quarter30'])$('strat-btn-'+k).classList.toggle('border-ios-blue',k===key);return loadQuarterAnalysis();}const ticket=++strategyTicket;for(const k of ['breakout','dip','top_surge','quarter30'])$('strat-btn-'+k).classList.toggle('border-ios-blue',k===key);
  const box=$('strategy-results-list');box.replaceChildren();if(!rankData){$('strategy-match-count').textContent='請先取得排行';return;}
  $('strategy-match-count').textContent=key==='top_surge'?'計算中…':'讀取前 20 檔日線…';const stocks=rankData.stocks,cutoff=rankData.date;let results=[],failed=0;
  if(key==='top_surge')results=stocks.filter(s=>s.turnover>=100e8).map(s=>({s,label:'成交金額 '+fmt(s.turnover/1e8)+' 億元'}));
@@ -709,6 +711,77 @@ async function applyStrategy(key){
  if(ticket!==strategyTicket)return;$('strategy-match-count').textContent=`符合 ${results.length} 檔${failed?' · '+failed+' 檔資料不足或讀取失敗':''}`;
  for(const {s,label} of results){const row=document.createElement('div');row.appendChild(card(s,stocks.indexOf(s)));const p=document.createElement('p');p.className='text-sm text-ios-gray px-3 py-2';p.textContent=label;row.appendChild(p);box.appendChild(row);}if(!results.length)box.innerHTML='<p class="text-sm text-ios-gray p-4">已取得的資料中沒有符合條件的股票。</p>';
 }
+// Rule-based descriptive analysis; all windows stop at the selected trading date.
+function analyzeQuarter(data,{distance=5,shrink=.8,provisional=false}={}){
+ if(data.length<65)return {phase:'資料不足',candidate:false,reason:'至少需要 65 根有效日 K 才能比較季線與近期走勢。'};
+ const avg=arr=>arr.length&&arr.every(Number.isFinite)?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+ const i=data.length-1,last=data[i],prev=data[i-1],ma60s=sma(data,60),ma5s=sma(data,5),ma60=ma60s[i],ma5=ma5s[i];
+ const v5=avg(data.slice(-5).map(d=>d.volume)),v20=avg(data.slice(-25,-5).map(d=>d.volume));
+ const prior5=avg(data.slice(-6,-1).map(d=>d.volume)),prior20=avg(data.slice(-26,-6).map(d=>d.volume)),day20=avg(data.slice(-21,-1).map(d=>d.volume));
+ const contraction=v20>0&&v5!==null?v5/v20:null,priorContraction=prior20>0&&prior5!==null?prior5/prior20:null,dayRatio=day20>0&&Number.isFinite(last.volume)?last.volume/day20:null;
+ const gap=(last.close/ma60-1)*100,slope=(ma60/ma60s[i-5]-1)*100;
+ const near=data.slice(-10).some((d,k)=>{const m=ma60s[data.length-10+k];return m>0&&(Math.abs(d.close/m-1)*100<=distance||(d.low<=m&&d.high>=m));});
+ const currentNear=Math.abs(gap)<=distance;const pullback=(1-Math.min(...data.slice(-10).map(d=>d.low))/Math.max(...data.slice(-20,-10).map(d=>d.high)))*100;
+ const range5=(Math.max(...data.slice(-5).map(d=>d.high))/Math.min(...data.slice(-5).map(d=>d.low))-1)*100;
+ const lowRecent=Math.min(...data.slice(-3).map(d=>d.low)),lowPrior=Math.min(...data.slice(-10,-3).map(d=>d.low));
+ const stableLow=lowRecent>=lowPrior*.99,above5=last.close>=ma5,shrinking=contraction!==null&&contraction<=shrink;
+ const priorShrinking=priorContraction!==null&&priorContraction<=shrink;
+ const declining=last.close<prev.close&&prev.close<data[i-2].close;
+ const base=near&&currentNear&&pullback>=3&&shrinking&&range5<=8&&stableLow&&last.close>=ma5*.99;
+ const attack=near&&Math.abs(gap)<=10&&priorShrinking&&above5&&last.close>prev.high&&last.close>last.open&&dayRatio!==null&&dayRatio>=1.2;
+ const rebound=near&&Math.abs(gap)<=10&&(shrinking||priorShrinking)&&above5&&last.close>prev.close&&last.close>last.open;
+ let phase='持續觀察',candidate=false;
+ if(provisional)phase='盤中暫估';
+ else if(gap< -3&&declining)phase='季線下方偏弱';
+ else if(attack){phase='放量反攻';candidate=true;}
+ else if(rebound){phase='初步回穩';candidate=true;}
+ else if(base){phase='量縮築底候選';candidate=true;}
+ else if(!near)phase='近期未接近季線';
+ else if(shrinking&&!stableLow)phase='量縮但低點續弱';
+ else if(contraction===null||dayRatio===null)phase='量能資料不足';
+ let reason=`收盤距 60MA ${signed(gap)}%，季線近 5 日${slope>=0?'上升':'下降'} ${fmt(Math.abs(slope))}%。`;
+ reason+=near?'最近 10 日曾接近季線。':'最近 10 日未接近季線。';
+ if(contraction!==null)reason+=`近 5 日均量是此前 20 日的 ${fmt(contraction)} 倍${shrinking?'，符合量縮條件':'，尚未符合量縮門檻'}。`;
+ else reason+='成交量缺漏，無法確認量縮。';
+ if(phase==='量縮築底候選')reason+=`近期回落 ${fmt(pullback)}%，近 5 日高低區間 ${fmt(range5)}%，近 3 日低點未再明顯下移，符合整理築底觀察條件；尚未代表突破。`;
+ else if(phase==='放量反攻')reason+=`此前 5 日均量比 ${fmt(priorContraction)}，今日收紅 K、站上 5MA 並突破前一日高點，日量為前 20 日均量 ${fmt(dayRatio)} 倍；屬反攻條件成立，後續仍需延續。`;
+ else if(phase==='初步回穩')reason+='曾量縮，今日收紅 K 且站上 5MA，但尚未同時符合突破前高與放量條件。';
+ else if(phase==='季線下方偏弱'||phase==='量縮但低點續弱')reason+='價格仍走弱，量縮不足以確認止跌。';
+ else if(provisional)reason+='本日尚未完成資料確認，量縮與反攻不列為已成立候選。';
+ else if(near)reason+=`尚未同時具備築底或反攻條件：${[!currentNear?'目前已離開季線範圍':'',!stableLow?'低點仍在下移':'',range5>8?'近 5 日振幅偏大':'',!above5?'尚未站上 5MA':'',pullback<3?'近期回落不足 3%':'',!shrinking?'近 5 日尚未量縮':''].filter(Boolean).join('、')||'仍待價格與量能共同確認'}。`;
+ if(slope<-.5&&!provisional)reason+='季線仍下彎，回穩或反攻尚不代表中期趨勢翻多。';
+ return {phase,candidate,reason,gap,ma60,ma5,slope,contraction,priorContraction,dayRatio,near,pullback,range5,stableLow,provisional};
+}
+let quarterReport=null,quarterLoadedAt=0;
+function quarterOptions(){const distance=Number($('quarter-distance').value),shrink=Number($('quarter-volume').value);if(!Number.isFinite(distance)||distance<1||distance>10||!Number.isFinite(shrink)||shrink<.3||shrink>1)throw Error('季線範圍需為 1～10%，量縮比需為 0.3～1。');return {distance,shrink};}
+function reportProvisional(date){const now=new Date();const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now).split(':').map(Number);return date===today&&parts[0]*60+parts[1]<14*60+35;}
+function reanalyzeQuarter(){if(!quarterReport)return;try{const options=quarterOptions();for(const r of quarterReport.rows)if(r.data)r.analysis=analyzeQuarter(r.data,{...options,provisional:quarterReport.provisional});renderQuarterReport();}catch(e){$('quarter-status').textContent=e.message;}}
+function renderQuarterReport(){
+ if(strategy!=='quarter30'||!quarterReport)return;const report=quarterReport,box=$('strategy-results-list');box.replaceChildren();
+ const candidates=report.rows.filter(r=>r.analysis?.candidate),failures=report.rows.filter(r=>r.error).length,done=report.rows.filter(r=>r.analysis||r.error).length;
+ $('quarter-status').textContent=`${report.date} · ${report.source} · 成交金額前 30 名一般股票（不含 ETF）${report.updatedAt?' · 來源更新 '+report.updatedAt.slice(11,19):''}。${report.provisional?'盤中／資料確認前暫估，尚不確認量縮及反攻。':'量價分析截止此交易日。'}${report.date!==report.today?' 今日尚無新榜，顯示最近交易日。':''}`;
+ $('strategy-match-count').textContent=`已分析 ${done}/30 · 候選 ${candidates.length} · 失敗 ${failures}`;
+ $('quarter-summary').innerHTML=[['量縮築底候選',report.rows.filter(r=>r.analysis?.phase==='量縮築底候選').length],['初步回穩',report.rows.filter(r=>r.analysis?.phase==='初步回穩').length],['放量反攻',report.rows.filter(r=>r.analysis?.phase==='放量反攻').length],['偏弱／低點續弱',report.rows.filter(r=>['季線下方偏弱','量縮但低點續弱'].includes(r.analysis?.phase)).length]].map(([a,b])=>`<div class="p-3 bg-ios-card border border-ios-border rounded-xl"><div class="text-xs text-ios-gray">${a}</div><div class="font-bold mt-1">${b}</div></div>`).join('');
+ const rows=$('quarter-only').checked?candidates:report.rows;
+ for(const r of rows){const a=r.analysis,s=r.stock;const el=document.createElement('article');el.className='bg-ios-card border border-ios-border rounded-2xl p-4 space-y-3';
+ const head=document.createElement('button');head.type='button';head.className='w-full flex justify-between items-start gap-3 text-left';head.onclick=()=>openStockSheet(s);
+ head.innerHTML=`<div><div class="font-bold text-white">#${s.rank} ${esc(s.name)} <span class="text-sm text-ios-gray">${esc(s.code)}</span></div><div class="text-sm text-ios-yellow mt-1">成交金額 ${fmt(s.turnover/1e8)} 億 · <span class="${color(s.change)}">${fmt(s.price)} (${signed(s.changePct)}%)</span></div></div><span class="text-sm ${a?.candidate?'text-ios-blue':'text-ios-gray'}">${esc(a?.phase||(r.error?'資料未完成':'分析中…'))}</span>`;el.appendChild(head);
+ if(a?.ma60){const stats=document.createElement('div');stats.className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm';stats.innerHTML=[['60MA',fmt(a.ma60)],['距季線',signed(a.gap)+'%'],['5日／前20日均量',fmt(a.contraction)+'×'],['日量／前20日均量',fmt(a.dayRatio)+'×']].map(([k,v])=>`<div class="p-2 bg-ios-cardSecondary rounded-lg"><div class="text-xs text-ios-gray">${k}</div><div class="mt-1">${v}</div></div>`).join('');el.appendChild(stats);}
+ const p=document.createElement('p');p.className='text-sm text-ios-gray leading-relaxed';p.textContent=r.error||a?.reason||'等待日線資料…';el.appendChild(p);box.appendChild(el);}
+ if(!rows.length){const p=document.createElement('p');p.className='p-4 text-sm text-ios-gray';p.textContent=done<30?'分析進行中，尚無符合候選條件的個股。':'本次沒有符合條件的候選；取消勾選即可查看全部 30 檔解析。';box.appendChild(p);}
+}
+async function loadQuarterAnalysis(force=false){
+ const ticket=++strategyTicket;let options;try{options=quarterOptions();}catch(e){$('quarter-status').textContent=e.message;return;}
+ if(!force&&quarterReport&&Date.now()-quarterLoadedAt<300000&&quarterReport.rows.every(r=>r.analysis||r.error)){renderQuarterReport();return;}
+ $('strategy-results-list').replaceChildren();$('quarter-summary').replaceChildren();$('strategy-match-count').textContent='取得今日成交金額 Top 30…';$('quarter-status').textContent='固定讀取 Yahoo 最新交易日成交金額排行（不含 ETF）…';
+ try{const d=await api({action:'rank',day:'today',sort:'turnover',limit:30,etf:0,...(force?{refresh:Date.now()}:{})});if(ticket!==strategyTicket||strategy!=='quarter30')return;
+ if(!Array.isArray(d.stocks)||d.stocks.length!==30)throw Error('目前 Worker 只支援舊版 20 檔；請部署新版 stock-worker.txt，再重新分析。');
+ quarterReport={date:d.date,today:d.taipeiToday,updatedAt:d.updatedAt,source:d.source,provisional:reportProvisional(d.date),rows:d.stocks.map((stock,i)=>({stock:{...stock,rank:i+1}}))};const report=quarterReport;renderQuarterReport();let next=0;
+ await Promise.all(Array.from({length:3},async()=>{while(next<report.rows.length){if(ticket!==strategyTicket||strategy!=='quarter30')return;const row=report.rows[next++];try{if(force)historyCache.delete(row.stock.symbol);const h=await getHistory(row.stock.symbol);if(ticket!==strategyTicket)return;const data=h.data.filter(x=>x.date<=report.date);if(data.at(-1)?.date!==report.date)throw Error(`Yahoo 尚未提供 ${report.date} 日 K；最近有效日為 ${data.at(-1)?.date||'無'}，不沿用舊訊號。`);row.data=data;row.analysis=analyzeQuarter(data,{...quarterOptions(),provisional:report.provisional});}catch(e){row.error=e.message;}if(ticket===strategyTicket)renderQuarterReport();}}));
+ if(ticket===strategyTicket){quarterLoadedAt=Date.now();renderQuarterReport();}
+ }catch(e){if(ticket!==strategyTicket)return;quarterReport=null;$('quarter-status').textContent=e.message;$('strategy-match-count').textContent='未完成分析';}
+}
+
 let focusBeforeSheet=null;
 async function openStockSheet(stock){
  activeStock={...stock};focusBeforeSheet=document.activeElement;const ticket=++chartTicket;chartData=[];chartOffset=0;chartPeriod='D';
@@ -741,7 +814,7 @@ function renderKLineChart(){
 function chartPointer(e){const m=canvasModel;if(!m)return;const rect=$('kline-canvas').getBoundingClientRect(),x=e.clientX-rect.left;if(x<m.left||x>m.w-62)return;const i=Math.min(m.data.length-1,Math.max(0,Math.floor((x-m.left)/m.dx))),d=m.data[i];const tip=$('chart-tooltip');tip.innerHTML=`<div class="text-white">${esc(d.date)}${d.endDate&&d.endDate!==d.date?'～'+esc(d.endDate):''}</div>開 ${fmt(d.open)}　高 ${fmt(d.high)}<br>低 ${fmt(d.low)}　收 ${fmt(d.close)}<br>量 ${fmt(d.volume==null?null:d.volume/1000,0)} 張<br>`+[...selectedMA].map(n=>`<span style="color:${colors[n]}">${n}${m.unit} MA ${fmt(m.mas[n][i])}</span>`).join('　');tip.classList.remove('hidden');}
 function openApiModal(){$('api-base').value=apiBase;$('api-modal').classList.remove('hidden');$('api-base').focus();}
 function closeApiModal(){$('api-modal').classList.add('hidden');}
-function saveAPI(){const value=$('api-base').value.trim();try{if(value){const u=new URL(value);if(u.protocol!=='https:')throw Error();}}catch{$('api-base').setCustomValidity('請輸入完整 HTTPS Worker 網址');$('api-base').reportValidity();return;}$('api-base').setCustomValidity('');apiBase=value;try{localStorage.setItem('tw_volume_api',apiBase);}catch{}historyCache.clear();closeApiModal();loadRank();}
+function saveAPI(){const value=$('api-base').value.trim();try{if(value){const u=new URL(value);if(u.protocol!=='https:')throw Error();}}catch{$('api-base').setCustomValidity('請輸入完整 HTTPS Worker 網址');$('api-base').reportValidity();return;}$('api-base').setCustomValidity('');apiBase=value;try{localStorage.setItem('tw_volume_api',apiBase);}catch{}historyCache.clear();quarterReport=null;closeApiModal();loadRank();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeApiModal();if(!$('stock-sheet').classList.contains('hidden'))closeStockSheet();}if(e.key==='Tab'){const modal=!$('api-modal').classList.contains('hidden')?$('api-modal'):!$('stock-sheet').classList.contains('hidden')?$('stock-sheet'):null;if(modal){const nodes=[...modal.querySelectorAll('button,input,select')].filter(x=>x.offsetParent!==null);if(nodes.length){const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}}}});
 $('stock-sheet').addEventListener('click',e=>{if(e.target===$('stock-sheet'))closeStockSheet();});$('kline-canvas').addEventListener('pointermove',chartPointer);$('kline-canvas').addEventListener('pointerleave',()=>$('chart-tooltip').classList.add('hidden'));new ResizeObserver(()=>{if(!$('stock-sheet').classList.contains('hidden'))renderKLineChart();}).observe($('kline-canvas'));
 renderMAControls();renderWatchlist();loadRank();
